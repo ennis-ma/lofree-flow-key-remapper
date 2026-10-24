@@ -1,0 +1,2246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Flow84 Remapper · OE915 v2.52</title>
+<style>
+:root {
+  --bg: #121418;
+  --bg-2: #171a1f;
+  --panel: #1c1f25;
+  --panel-2: #23272f;
+  --panel-3: #2b3039;
+  --line: #2f343e;
+  --line-2: #3b4250;
+  --text: #e9ebef;
+  --muted: #98a0ad;
+  --faint: #6c7482;
+  --accent: #f2a33a;
+  --accent-ink: #1b1306;
+  --accent-soft: #f2a33a26;
+  --ok: #4cc38a;
+  --ok-soft: #4cc38a1f;
+  --danger: #ef6363;
+  --danger-soft: #ef63631c;
+  --warn-soft: #f2a33a14;
+  --radius: 12px;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: .45; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+h1, h2, h3, p { margin-top: 0; }
+p { line-height: 1.55; }
+code, .mono { font-family: var(--mono); }
+[hidden] { display: none !important; }
+
+/* ---------- generic controls ---------- */
+.btn {
+  border: 1px solid var(--line-2); background: var(--panel-2); border-radius: 9px;
+  padding: 8px 14px; font-weight: 600; font-size: 13px; line-height: 1.3;
+  display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;
+}
+.btn:hover:not(:disabled) { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.primary:hover:not(:disabled) { filter: brightness(1.08); }
+.btn.danger { color: var(--danger); border-color: #ef636366; background: transparent; }
+.btn.danger:hover:not(:disabled) { background: var(--danger-soft); border-color: var(--danger); }
+.btn.ghost { background: transparent; border-color: transparent; color: var(--muted); }
+.btn.ghost:hover:not(:disabled) { color: var(--text); border-color: var(--line-2); }
+.btn.small { padding: 5px 10px; font-size: 12px; border-radius: 7px; }
+select, input[type=search], input[type=text] {
+  background: var(--bg-2); border: 1px solid var(--line-2); border-radius: 9px;
+  padding: 8px 11px; font-size: 13px; width: 100%;
+}
+select option, select optgroup { background: var(--panel); }
+input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent); margin: 2px 0 0; flex-shrink: 0; }
+.check { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.5; cursor: pointer; }
+.muted { color: var(--muted); }
+.digest { font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere; line-height: 1.6; }
+.pill {
+  display: inline-flex; align-items: center; gap: 7px; border-radius: 999px; padding: 5px 11px;
+  font-size: 12px; font-weight: 650; border: 1px solid var(--line-2); background: var(--panel-2); white-space: nowrap;
+}
+.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--faint); }
+.pill.ready::before { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+.pill.error::before { background: var(--danger); }
+.pill.plain::before { display: none; }
+button.pill:hover:not(:disabled) { border-color: var(--accent); }
+.btn.icon { padding: 7px; }
+.btn.icon svg { width: 17px; height: 17px; }
+.count-badge {
+  min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; font-size: 11px; font-weight: 750;
+  background: var(--accent); color: var(--accent-ink); display: inline-flex; align-items: center; justify-content: center;
+}
+.count-badge.zero { background: var(--panel-3); color: var(--muted); }
+.btn.primary .count-badge { background: var(--accent-ink); color: var(--accent); }
+.btn.primary .count-badge.zero { background: #00000033; color: var(--accent-ink); }
+.error-box {
+  padding: 11px 14px; border: 1px solid #ef636677; border-radius: 9px; color: #ffb4b4;
+  background: var(--danger-soft); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere;
+}
+
+/* ---------- shell ---------- */
+.app { display: grid; grid-template-columns: 76px minmax(0, 1fr); min-height: 100vh; background: linear-gradient(90deg, var(--bg-2) 75px, var(--line) 75px 76px, var(--bg) 76px); }
+.rail {
+  background: var(--bg-2); border-right: 1px solid var(--line); display: flex; flex-direction: column;
+  align-items: center; padding: 16px 0; gap: 6px; position: sticky; top: 0; height: 100vh;
+}
+.logo {
+  width: 40px; height: 40px; border-radius: 11px; background: var(--accent); color: var(--accent-ink);
+  display: grid; place-items: center; font-weight: 850; font-size: 15px; letter-spacing: -.5px; margin-bottom: 14px;
+}
+.app.locked .rail-btn[data-view="configure"], .app.locked .rail-btn[data-view="flash"], .app.locked .topbar .tools, .app.locked #connection-state { display: none; }
+.rail-btn {
+  width: 60px; border: 1px solid transparent; background: transparent; border-radius: 10px; padding: 9px 2px 7px;
+  display: flex; flex-direction: column; align-items: center; gap: 5px; color: var(--muted); font-size: 10.5px; font-weight: 650;
+  position: relative;
+}
+.rail-btn svg { width: 21px; height: 21px; }
+.rail-btn:hover { color: var(--text); background: var(--panel); }
+.rail-btn[aria-current=page] { color: var(--accent); background: var(--panel-2); border-color: var(--line); }
+.rail-btn .count-badge { position: absolute; top: 3px; right: 6px; min-width: 17px; height: 17px; font-size: 10px; }
+.main { min-width: 0; display: flex; flex-direction: column; }
+.topbar {
+  display: flex; align-items: center; gap: 16px; padding: 14px 26px; border-bottom: 1px solid var(--line);
+  background: var(--bg); position: sticky; top: 0; z-index: 5; flex-wrap: wrap;
+}
+.brand h1 { font-size: 17px; margin: 0; letter-spacing: -.2px; }
+.brand small { color: var(--muted); font-size: 12px; }
+.topbar .spacer { flex: 1; }
+.topbar .tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+#draft-storage-state { font-size: 12px; color: var(--faint); }
+.content { padding: 22px 26px 40px; max-width: 1360px; width: 100%; margin: 0 auto; }
+#global-error { margin-bottom: 16px; }
+.loading { padding: 60px; text-align: center; color: var(--muted); }
+
+.banner {
+  display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap;
+  border: 1px solid #f2a33a40; background: var(--warn-soft); border-radius: 10px; padding: 10px 14px;
+  font-size: 13px; line-height: 1.5; margin-bottom: 18px;
+}
+.banner strong { color: var(--accent); }
+
+/* ---------- configure: stage ---------- */
+.stage-head { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+.segmented { display: inline-flex; background: var(--bg-2); border: 1px solid var(--line); border-radius: 11px; padding: 4px; gap: 3px; flex-wrap: wrap; }
+.segmented button {
+  border: 1px solid transparent; background: transparent; border-radius: 8px; padding: 7px 13px;
+  font-size: 13px; font-weight: 650; color: var(--muted); display: inline-flex; gap: 8px; align-items: center;
+}
+.segmented button:hover { color: var(--text); }
+.segmented button[aria-selected=true], .segmented button[aria-pressed=true] { background: var(--panel-3); color: var(--text); border-color: var(--line-2); }
+.segmented .layer-num {
+  width: 19px; height: 19px; border-radius: 5px; background: var(--panel); border: 1px solid var(--line-2);
+  display: inline-grid; place-items: center; font-size: 11px; color: var(--muted);
+}
+.segmented button[aria-selected=true] .layer-num { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.segmented .count-badge { height: 17px; min-width: 17px; font-size: 10px; }
+
+.stage {
+  background: radial-gradient(120% 140% at 50% 0%, #252a33 0%, #171a1f 60%);
+  border: 1px solid var(--line); border-radius: 16px; padding: 30px 26px 22px; position: relative;
+}
+.board-wrap { display: flex; justify-content: center; }
+.board {
+  container-type: inline-size; width: min(100%, 1040px); position: relative;
+  padding: 1.6%; border-radius: 18px;
+  background: linear-gradient(180deg, #4b505a 0%, #3a3e46 55%, #33373e 100%);
+  box-shadow: 0 1px 0 #6b707a inset, 0 -2px 0 #2a2d33 inset, 0 24px 50px #00000080, 0 4px 10px #00000060;
+}
+.plate { position: relative; width: 100%; aspect-ratio: 16 / 6; }
+.board-badge {
+  position: absolute; right: 1.6%; bottom: -2px; transform: translateY(100%); font-size: 10px;
+  letter-spacing: 3px; color: #8d929b; font-weight: 700; padding-top: 6px;
+}
+.key {
+  position: absolute; padding: 0.22cqw; border: 0; background: transparent; margin: 0;
+  font-size: clamp(7px, 1.12cqw, 13px); line-height: 1.1;
+}
+.key .cap {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .1em;
+  width: 100%; height: 100%; border-radius: 0.75cqw; padding: .3em .2em;
+  background: linear-gradient(180deg, #2c2f35 0%, #24272c 100%);
+  box-shadow: 0 0.25cqw 0 #121316, 0 0.35cqw 0.6cqw #00000070, 0 1px 0 #3c4048 inset;
+  color: #eceef1; transition: transform .08s ease, box-shadow .12s ease, background .12s ease;
+  overflow: hidden;
+}
+.key.mod .cap { background: linear-gradient(180deg, #24262b 0%, #1d1f23 100%); color: #cfd3d9; }
+.key:hover .cap { background: linear-gradient(180deg, #363a42 0%, #2c3037 100%); }
+.key:active .cap { transform: translateY(0.15cqw); box-shadow: 0 0.1cqw 0 #121316, 0 1px 0 #3c4048 inset; }
+.key .leg { font-weight: 650; font-size: 1em; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.key .leg.small { font-size: .82em; }
+.key .leg.tiny { font-size: .68em; }
+.key .leg-top { font-size: .78em; color: #aeb3bb; font-weight: 500; }
+.key .sub { font-size: .62em; color: #8b919b; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; letter-spacing: .2px; }
+.key.fn .leg, .key .leg.fn { color: var(--accent); }
+.key.inherit .cap { opacity: .38; }
+.key.inherit:hover .cap { opacity: .75; }
+.key.disabled-action .leg { color: #6f7580; font-weight: 500; }
+.key.changed .cap { box-shadow: 0 0.25cqw 0 #121316, 0 0 0 1.5px #f2a33aaa inset, 0 0.35cqw 0.6cqw #00000070; }
+.key.changed .leg { color: var(--accent); }
+.key.changed .cap::after {
+  content: ""; position: absolute; top: 0.45cqw; right: 0.45cqw; width: 0.5cqw; height: 0.5cqw; min-width: 4px; min-height: 4px;
+  border-radius: 50%; background: var(--accent);
+}
+.key[aria-pressed=true] .cap {
+  background: linear-gradient(180deg, #f6b65a 0%, #e9972b 100%); color: var(--accent-ink); opacity: 1;
+  box-shadow: 0 0.25cqw 0 #8c5512, 0 0 0 2px #ffd59a inset, 0 0 1.6cqw #f2a33a99;
+}
+.key[aria-pressed=true] .leg, .key[aria-pressed=true] .leg-top, .key[aria-pressed=true] .sub { color: var(--accent-ink); }
+.key[aria-pressed=true] .cap::after { background: var(--accent-ink); }
+
+.stage-foot {
+  display: flex; justify-content: space-between; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted);
+  margin-top: 30px;
+}
+.legend-row { display: flex; gap: 16px; flex-wrap: wrap; }
+.legend-item { display: inline-flex; align-items: center; gap: 7px; }
+.swatch { width: 12px; height: 12px; border-radius: 3px; background: #2a2d33; border: 1px solid #3c4048; }
+.swatch.changed { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.swatch.selected { background: var(--accent); border-color: var(--accent); }
+.swatch.inherit { opacity: .4; }
+
+/* factory matrix */
+.matrix-scroll { overflow: auto; padding-bottom: 4px; }
+.matrix { container-type: inline-size; min-width: 1060px; display: grid; grid-template-columns: 26px repeat(22, minmax(0, 1fr)); gap: 4px; }
+.matrix .axis { font-size: 10px; color: var(--faint); display: grid; place-items: center; font-family: var(--mono); }
+.matrix .key { position: relative; height: 56px; padding: 0; font-size: 11px; }
+.matrix .key .cap { border-radius: 7px; box-shadow: 0 2px 0 #121316, 0 1px 0 #3c4048 inset; }
+.matrix .key.offboard .cap { background: repeating-linear-gradient(135deg, #191b1f 0 5px, #25282e 5px 10px); color: #9aa0a9; }
+.matrix .key[aria-pressed=true] .cap { box-shadow: 0 2px 0 #8c5512, 0 0 0 2px #ffd59a inset, 0 0 14px #f2a33a88; }
+.matrix .key.changed .cap::after { top: 4px; right: 4px; width: 5px; height: 5px; }
+
+/* ---------- configure: inspector + picker ---------- */
+.workbench { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; margin-top: 16px; align-items: start; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+.panel-pad { padding: 18px; }
+.panel h2 { font-size: 15px; margin-bottom: 4px; }
+.panel-sub { font-size: 12px; color: var(--muted); margin-bottom: 14px; line-height: 1.5; }
+.inspector .preview { display: flex; gap: 14px; align-items: center; margin-bottom: 14px; }
+.preview-cap {
+  width: 64px; height: 64px; border-radius: 12px; flex-shrink: 0; display: grid; place-items: center; text-align: center;
+  background: linear-gradient(180deg, #f6b65a 0%, #e9972b 100%); color: var(--accent-ink); font-weight: 750; font-size: 14px;
+  box-shadow: 0 4px 0 #8c5512, 0 0 0 2px #ffd59a inset; padding: 4px; overflow: hidden; overflow-wrap: anywhere; line-height: 1.15;
+}
+.preview-title { font-weight: 700; font-size: 15px; margin-bottom: 3px; overflow-wrap: anywhere; }
+.preview-meta { font-size: 12px; color: var(--muted); line-height: 1.5; }
+.kv { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin-bottom: 14px; }
+.kv div { display: grid; grid-template-columns: 70px minmax(0, 1fr); gap: 10px; padding: 9px 12px; font-size: 13px; }
+.kv div + div { border-top: 1px solid var(--line); }
+.kv span { color: var(--muted); }
+.kv strong { font-weight: 600; overflow-wrap: anywhere; }
+.kv .is-changed strong { color: var(--accent); }
+.pair-box { border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px; margin-bottom: 14px; background: var(--bg-2); }
+.pair-box small { display: block; color: var(--muted); font-size: 12px; margin-top: 6px; line-height: 1.5; }
+.inspector .btn { width: 100%; justify-content: center; }
+.inspector-note { font-size: 12px; color: var(--faint); line-height: 1.5; margin: 12px 0 0; }
+
+.picker { display: grid; grid-template-columns: 170px minmax(0, 1fr); min-height: 380px; overflow: hidden; }
+.cat-list { border-right: 1px solid var(--line); padding: 10px; display: flex; flex-direction: column; gap: 2px; background: var(--bg-2); }
+.cat-list button {
+  text-align: left; border: 1px solid transparent; background: transparent; border-radius: 8px; padding: 8px 11px;
+  font-size: 13px; font-weight: 600; color: var(--muted); display: flex; justify-content: space-between; gap: 8px;
+}
+.cat-list button:hover { color: var(--text); background: var(--panel); }
+.cat-list button[aria-selected=true] { color: var(--text); background: var(--panel-3); border-color: var(--line-2); }
+.cat-list .n { color: var(--faint); font-weight: 500; font-size: 11px; }
+.picker-main { padding: 14px 16px 18px; min-width: 0; }
+.picker-head { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+.picker-head input { flex: 1; min-width: 180px; }
+.picker-hint { font-size: 12px; color: var(--muted); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(66px, 1fr)); gap: 7px; }
+.group-title { grid-column: 1 / -1; font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--faint); font-weight: 700; margin: 8px 0 1px; }
+.group-title:first-child { margin-top: 0; }
+.tile {
+  height: 58px; border-radius: 9px; border: 1px solid var(--line-2); background: linear-gradient(180deg, #2a2e36, #23272e);
+  box-shadow: 0 2px 0 #14161a; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; padding: 4px; font-size: 13px; font-weight: 650; line-height: 1.1; text-align: center; overflow: hidden;
+}
+.tile .t-top { font-size: 10px; color: var(--muted); font-weight: 500; }
+.tile .t-sub { font-size: 9.5px; color: var(--faint); font-weight: 500; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tile .t-main { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tile .t-main.small { font-size: 11px; }
+.tile .t-main.tiny { font-size: 10px; }
+.tile.wide { grid-column: span 2; }
+.tile:hover:not(:disabled) { border-color: var(--accent); transform: translateY(-1px); }
+.tile.current { border-color: var(--accent); background: var(--accent-soft); }
+.tile.fn .t-main { color: var(--accent); }
+.empty { font-size: 13px; color: var(--muted); padding: 16px; background: var(--bg-2); border-radius: 9px; border: 1px dashed var(--line-2); }
+.combo-builder { border: 1px solid var(--line-2); border-radius: 11px; padding: 14px; background: var(--bg-2); margin-bottom: 16px; }
+.combo-builder h3 { font-size: 13px; margin: 0 0 10px; }
+.combo-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.combo-row select { width: auto; flex: 1 1 160px; min-width: 160px; max-width: 280px; }
+.mod-toggles { display: flex; gap: 6px; flex-wrap: wrap; }
+.mod-toggles label {
+  display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line-2); border-radius: 8px; padding: 6px 10px;
+  font-size: 12px; font-weight: 650; cursor: pointer; background: var(--panel);
+}
+.mod-toggles label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.combo-preview { display: block; margin: 10px 0 0; font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.combo-preview strong { color: var(--text); }
+
+/* ---------- review & flash ---------- */
+.stepper { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 18px; }
+.step { border: 1px solid var(--line); border-radius: 11px; padding: 12px 14px; background: var(--panel); display: flex; gap: 12px; align-items: center; }
+.step .dot {
+  width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line-2); display: grid; place-items: center;
+  font-weight: 750; font-size: 13px; color: var(--muted); flex-shrink: 0;
+}
+.step strong { font-size: 13px; display: block; }
+.step small { font-size: 12px; color: var(--muted); }
+.step.done .dot { background: var(--ok); border-color: var(--ok); color: #08130d; }
+.step.active { border-color: #f2a33a66; }
+.step.active .dot { border-color: var(--accent); color: var(--accent); }
+.flash-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.flash-grid .panel + .panel { margin-top: 16px; }
+.card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.change-list { display: flex; flex-direction: column; gap: 14px; max-height: 520px; overflow: auto; }
+.change-group h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--faint); margin: 0 0 7px; }
+.change-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center;
+  padding: 9px 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--bg-2);
+}
+.change-row + .change-row { margin-top: 6px; }
+.change-desc { font-size: 13px; line-height: 1.45; min-width: 0; }
+.change-desc .slot { color: var(--faint); font-size: 11px; font-family: var(--mono); }
+.change-desc .arrow { color: var(--faint); margin: 0 6px; }
+.change-desc .to { color: var(--accent); font-weight: 650; }
+.change-actions { display: flex; gap: 4px; }
+.build-state { font-size: 13px; line-height: 1.5; padding: 10px 12px; border-radius: 9px; background: var(--bg-2); color: var(--muted); margin: 12px 0; border: 1px solid var(--line); }
+.build-state.reviewed { background: var(--ok-soft); color: #9fe5c2; border-color: #4cc38a55; }
+.digest-block { background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px; padding: 13px; margin: 14px 0; }
+.digest-block dt { font-size: 11px; color: var(--faint); margin: 0 0 4px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+.digest-block dd { margin: 0 0 12px; font-size: 13px; overflow-wrap: anywhere; white-space: pre-line; }
+.digest-block dd:last-child { margin-bottom: 0; }
+details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+.review-table-wrap { max-height: 280px; overflow: auto; margin-top: 10px; }
+.review-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 12px; }
+.review-table th { color: var(--faint); font-size: 10.5px; text-transform: uppercase; letter-spacing: .5px; background: var(--panel); position: sticky; top: 0; }
+.review-table th, .review-table td { padding: 8px 6px; border-bottom: 1px solid var(--line); }
+.review-table td { overflow-wrap: anywhere; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.readiness { font-size: 12px; color: var(--muted); margin: 10px 0 0; line-height: 1.5; }
+.device-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; }
+.field-label { display: block; font-size: 12px; font-weight: 650; color: var(--muted); margin-bottom: 6px; }
+.status-meta { display: flex; gap: 10px; justify-content: space-between; flex-wrap: wrap; font-size: 12px; color: var(--muted); line-height: 1.5; margin: 10px 0 12px; }
+.log {
+  font-family: var(--mono); font-size: 12px; line-height: 1.6; background: #0c0e11; color: #cfe3da; padding: 14px;
+  border-radius: 10px; border: 1px solid var(--line); max-height: 260px; min-height: 90px; overflow: auto;
+  white-space: pre-wrap; overflow-wrap: anywhere; margin: 12px 0 0;
+}
+.write-warning { font-size: 12px; color: var(--muted); line-height: 1.5; border-left: 2px solid var(--accent); padding: 2px 0 2px 10px; margin: 12px 0; }
+.divider { border: 0; border-top: 1px solid var(--line); margin: 16px 0; }
+.progress { height: 6px; border-radius: 99px; background: var(--bg-2); border: 1px solid var(--line); overflow: hidden; margin-top: 12px; }
+.progress div { height: 100%; width: 0; background: var(--accent); transition: width .15s linear; }
+.boot-prompt { border: 1px solid #f2a33a66; background: var(--warn-soft); border-radius: 10px; padding: 12px 14px; font-size: 13px; line-height: 1.5; margin: 10px 0; display: grid; gap: 8px; }
+.boot-prompt strong { color: var(--accent); }
+
+/* ---------- stock loader ---------- */
+.onboard { display: grid; place-items: center; padding: 40px 0; }
+.onboard-card { max-width: 640px; }
+/* ---------- stock loader ---------- */
+.attached-banner {
+  margin: 16px 0; padding: 14px 16px; border-radius: 12px;
+  background: var(--panel-2); border: 1.5px solid var(--ok);
+  display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap;
+}
+.attached-info { display: flex; flex-direction: column; gap: 4px; }
+.onboard-card h2 { font-size: 20px; margin-bottom: 10px; }
+.onboard-card p { font-size: 14px; color: #c9ced6; }
+.onboard-note { font-size: 12px !important; color: var(--muted) !important; margin: 14px 0 0; }
+.dropzone {
+  display: grid; place-items: center; gap: 6px; text-align: center; padding: 34px 20px; margin: 16px 0;
+  border: 1.5px dashed var(--line-2); border-radius: 14px; background: var(--bg-2); cursor: pointer; font-size: 14px;
+}
+.dropzone span { color: var(--muted); font-size: 13px; }
+.dropzone:hover, .dropzone.over { border-color: var(--accent); background: var(--accent-soft); }
+.dropzone.busy { opacity: .6; pointer-events: none; }
+
+/* ---------- key tester ---------- */
+.tester-head {
+  display: flex; justify-content: space-between; align-items: center; gap: 16px;
+  margin-bottom: 18px; flex-wrap: wrap;
+}
+.tester-title-group h2 { margin: 0 0 4px; font-size: 20px; }
+.tester-title-group p { margin: 0; font-size: 13px; }
+.tester-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.tester-trap { margin-left: 4px; user-select: none; }
+
+.tester-plate { position: relative; width: 100%; aspect-ratio: 16 / 6; }
+.tester-key {
+  position: absolute; padding: 0.22cqw; border: 0; background: transparent; margin: 0;
+  font-size: clamp(7px, 1.12cqw, 13px); line-height: 1.1; cursor: pointer; user-select: none;
+}
+.tester-key .cap {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .1em;
+  width: 100%; height: 100%; border-radius: 0.75cqw; padding: .3em .2em;
+  background: linear-gradient(180deg, #2c2f35 0%, #24272c 100%);
+  box-shadow: 0 0.25cqw 0 #121316, 0 0.35cqw 0.6cqw #00000070, 0 1px 0 #3c4048 inset;
+  color: #eceef1; transition: transform .06s ease, box-shadow .08s ease, background .08s ease;
+  overflow: hidden;
+}
+.tester-key.mod .cap { background: linear-gradient(180deg, #24262b 0%, #1d1f23 100%); color: #cfd3d9; }
+.tester-key:hover .cap { background: linear-gradient(180deg, #363a42 0%, #2c3037 100%); }
+
+.tester-key.tested .cap {
+  background: linear-gradient(180deg, #1c3629 0%, #13241b 100%);
+  box-shadow: 0 0.25cqw 0 #0d1712, 0 0 0 1.5px #4cc38a99 inset, 0 0.35cqw 0.6cqw #00000070;
+  color: #e4f9f0;
+}
+.tester-key.tested .leg { color: #5be6a4; }
+.tester-key.tested .leg-top { color: #8ee9bd; }
+
+.tester-key.active .cap {
+  background: linear-gradient(180deg, #f6b65a 0%, #e9972b 100%) !important;
+  color: var(--accent-ink) !important;
+  transform: translateY(0.18cqw);
+  box-shadow: 0 0.1cqw 0 #8c5512, 0 0 0 2px #ffd59a inset, 0 0 1.6cqw #f2a33abb !important;
+}
+.tester-key.active .leg, .tester-key.active .leg-top, .tester-key.active .sub {
+  color: var(--accent-ink) !important;
+}
+
+.tester-key .hit-badge {
+  position: absolute; top: 0.3cqw; right: 0.4cqw;
+  font-size: clamp(6px, 0.72cqw, 10px); font-weight: 750;
+  color: #4cc38a; background: #0b1a13; padding: 0.05cqw 0.35cqw;
+  border-radius: 999px; line-height: 1.1; border: 1px solid #4cc38a44;
+}
+.tester-key.active .hit-badge {
+  color: var(--accent-ink); background: #00000022; border-color: transparent;
+}
+
+.tester-extra-tray {
+  margin-top: 14px; padding: 12px 16px; border-radius: 10px;
+  background: var(--bg); border: 1px dashed var(--line-2);
+}
+.tester-extra-label { font-size: 11.5px; font-weight: 650; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .5px; }
+.tester-extra-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.tester-extra-chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px;
+  border-radius: 7px; background: #1c3629; border: 1px solid #4cc38a66;
+  color: #5be6a4; font-size: 12px; font-weight: 600; font-family: var(--mono);
+}
+.tester-extra-chip.active {
+  background: var(--accent); color: var(--accent-ink); border-color: var(--accent);
+}
+.tester-extra-chip .chip-count {
+  font-size: 10px; padding: 1px 5px; border-radius: 999px; background: #00000033;
+}
+
+.tester-stats-row {
+  display: flex; justify-content: space-between; align-items: center; gap: 14px;
+  flex-wrap: wrap; margin-top: 24px; font-size: 12px; color: var(--muted);
+}
+.tester-progress-wrap { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.tester-swatch-active { background: var(--accent); border-color: var(--accent); }
+.tester-swatch-tested { background: #1c3629; border-color: #4cc38a; box-shadow: 0 0 0 1px #4cc38a inset; }
+.tester-swatch-untested { background: #2c2f35; border-color: #3c4048; }
+
+.tester-workbench {
+  display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 16px;
+  margin-top: 16px; align-items: start;
+}
+.tester-panel-title { font-size: 14px; margin: 0 0 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); font-weight: 700; }
+
+.tester-last-key-hero {
+  background: var(--bg-2); border: 1px solid var(--line-2); border-radius: 10px;
+  padding: 16px; text-align: center; margin-bottom: 14px;
+}
+.tester-hero-code {
+  font-size: 28px; font-weight: 800; font-family: var(--mono);
+  color: var(--accent); line-height: 1.2; overflow-wrap: anywhere;
+}
+.tester-hero-sub { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+
+.tester-kv-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px;
+}
+.tester-kv-item {
+  background: var(--bg-2); border: 1px solid var(--line); border-radius: 8px;
+  padding: 8px 10px; display: flex; flex-direction: column; gap: 3px;
+}
+.tester-kv-item .muted { font-size: 11px; }
+.tester-code-val { font-family: var(--mono); font-size: 12.5px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.tester-section-subhead { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--faint); margin-bottom: 7px; }
+.tester-mod-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.mod-chip {
+  padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;
+  border: 1px solid var(--line-2); background: var(--bg-2); color: var(--muted);
+  transition: all .1s ease;
+}
+.mod-chip.active { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 750; }
+.mod-chip.lock.locked { background: var(--ok); color: #0a1f14; border-color: var(--ok); font-weight: 750; }
+
+.tester-log-panel { display: flex; flex-direction: column; gap: 12px; }
+.tester-log-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.tester-log-head h3 { margin-bottom: 2px; }
+.tester-log-container {
+  max-height: 290px; overflow-y: auto; border: 1px solid var(--line); border-radius: 9px;
+  background: var(--bg-2); font-size: 12px;
+}
+.tester-log-empty { padding: 36px 16px; text-align: center; color: var(--faint); font-style: italic; }
+.tester-log-table { width: 100%; border-collapse: collapse; text-align: left; }
+.tester-log-table th {
+  position: sticky; top: 0; background: var(--panel-2); padding: 7px 10px;
+  font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase;
+  letter-spacing: .5px; border-bottom: 1px solid var(--line); z-index: 2;
+}
+.tester-log-table td { padding: 6px 10px; border-bottom: 1px solid #23272f; vertical-align: middle; }
+.tester-log-table tr:hover td { background: var(--panel); }
+.badge-down {
+  display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10.5px;
+  font-weight: 750; background: var(--accent-soft); color: var(--accent);
+}
+.badge-up {
+  display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10.5px;
+  font-weight: 650; background: #ffffff10; color: var(--muted);
+}
+.badge-chatter {
+  display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10.5px;
+  font-weight: 750; background: var(--danger-soft); color: var(--danger); border: 1px solid #ef636666;
+}
+.badge-repeat {
+  display: inline-block; padding: 2px 5px; border-radius: 4px; font-size: 10px;
+  background: #ffffff0a; color: var(--faint);
+}
+
+.tester-hw-callout {
+  padding: 12px 14px; border-radius: 9px; background: var(--panel-2); border: 1px solid var(--line-2);
+  font-size: 12px; line-height: 1.5; color: var(--muted);
+}
+.tester-hw-callout .callout-title { color: var(--text); margin-bottom: 6px; }
+.tester-hw-callout ul { margin: 0; padding-left: 18px; }
+.tester-hw-callout li { margin-bottom: 4px; }
+.tester-hw-callout li:last-child { margin-bottom: 0; }
+.tester-hw-callout code { color: var(--accent); background: var(--bg-2); padding: 1px 5px; border-radius: 4px; font-size: 11px; }
+
+/* ---------- info ---------- */
+.info-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.info-grid .panel p, .info-grid .panel li { font-size: 13px; color: #c9ced6; line-height: 1.6; }
+.info-grid ul { padding-left: 18px; margin: 0; }
+.info-grid li + li { margin-top: 6px; }
+.info-grid strong { color: var(--text); }
+
+/* ---------- dialog ---------- */
+dialog {
+  max-width: 580px; width: calc(100% - 32px); border: 1px solid var(--line-2); border-radius: 16px; padding: 24px;
+  color: var(--text); background: var(--panel);
+}
+dialog::backdrop { background: #05060899; backdrop-filter: blur(3px); }
+dialog h2 { font-size: 18px; }
+dialog p { font-size: 13px; color: #c9ced6; }
+.confirm-details { font-size: 13px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 9px; padding: 12px; margin-bottom: 14px; overflow-wrap: anywhere; }
+.confirm-details div + div { margin-top: 8px; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+/* ---------- responsive ---------- */
+@media (max-width: 1100px) {
+  .workbench, .tester-workbench { grid-template-columns: 1fr; }
+  .flash-grid, .info-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 760px) {
+  .app { grid-template-columns: 1fr; background: var(--bg); }
+  .rail { position: sticky; top: 0; height: auto; flex-direction: row; justify-content: center; padding: 8px; z-index: 6; border-right: 0; border-bottom: 1px solid var(--line); }
+  .logo { margin: 0 8px 0 0; width: 34px; height: 34px; }
+  .topbar { position: static; padding: 12px 14px; }
+  .content { padding: 14px; }
+  .stage { padding: 18px 10px 14px; }
+  .picker { grid-template-columns: 1fr; }
+  .cat-list { flex-direction: row; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+  .cat-list button { flex-shrink: 0; }
+  .stepper { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="app locked">
+<nav class="rail" aria-label="Sections">
+  <div class="logo" aria-hidden="true">lf</div>
+  <button class="rail-btn" type="button" data-view="configure" aria-current="page">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg>
+    Configure
+  </button>
+  <button class="rail-btn" type="button" data-view="flash">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>
+    Flash
+    <span id="rail-count" class="count-badge zero">0</span>
+  </button>
+  <button class="rail-btn" type="button" data-view="tester">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2.5"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 16h10"/></svg>
+    Tester
+  </button>
+  <button class="rail-btn" type="button" data-view="info">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v6M12 7.5h.01"/></svg>
+    Safety
+  </button>
+</nav>
+
+<div class="main">
+<header class="topbar">
+  <div class="brand"><h1>Flow84 Remapper</h1><small>Lofree OE915 · firmware v2.52</small></div>
+  <button id="connection-state" class="pill" type="button" aria-live="polite" title="Choose the keyboard in Chrome’s device chooser">Connect keyboard</button>
+  <div class="spacer"></div>
+  <div class="tools">
+    <span id="draft-storage-state"></span>
+    <button id="import-profile" class="btn ghost icon" type="button" title="Import profile" aria-label="Import profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3M7 10l5 5 5-5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg></button>
+    <button id="export-profile" class="btn ghost icon" type="button" title="Export profile" aria-label="Export profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg></button>
+    <button id="reset-all" class="btn ghost icon" type="button" title="Reset draft to factory defaults" aria-label="Reset draft"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg></button>
+    <input id="profile-file" type="file" accept=".json,application/json" hidden>
+    <button id="goto-flash" class="btn primary" type="button">Review &amp; flash <span id="total-count" class="count-badge zero">0</span></button>
+  </div>
+</header>
+
+<div class="content">
+<div id="global-error" class="error-box" role="alert" hidden></div>
+<div id="loading" class="loading" role="status">Checking for saved stock firmware…</div>
+
+<section id="stock-loader" class="onboard" aria-labelledby="stock-title" hidden>
+  <div class="panel panel-pad onboard-card">
+    <h2 id="stock-title">Load the stock firmware</h2>
+    <p>Every image is built from Lofree’s original OE915 v2.52 firmware. Choose <code>CompxUpgradeBinFile.bin</code> or Lofree’s updater <code>OE915更新V2.52.exe</code> (the firmware is extracted from it). The file must match SHA-256 <span class="digest">7c061d9c…dbccc7de</span>. It stays in this browser: nothing is uploaded and this page bundles no Lofree firmware.</p>
+    <div id="attached-firmware-banner" class="attached-banner" hidden>
+      <div class="attached-info">
+        <span class="pill ready plain" style="font-size:11px;padding:3px 9px;">Attached Firmware</span>
+        <strong style="color:var(--text);margin-top:2px;">OE915 v2.52 Stock Firmware Available</strong>
+        <span class="digest muted">CompxUpgradeBinFile.bin (SHA-256 authenticated)</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button id="load-attached-btn" class="btn primary small" type="button">⚡ Load attached firmware</button>
+        <a href="CompxUpgradeBinFile.bin" download="CompxUpgradeBinFile.bin" class="btn ghost small">⬇ Download .bin</a>
+      </div>
+    </div>
+    <label id="stock-drop" class="dropzone" for="stock-file"><strong>Drop the firmware or updater here</strong><span>or click to choose a file</span></label>
+    <input id="stock-file" type="file" accept=".bin,.exe,application/octet-stream" hidden>
+    <div id="stock-error" class="error-box" role="alert" hidden></div>
+    <p class="onboard-note">Flashing uses WebHID in a desktop Chromium browser (Chrome, Edge, Opera, Brave). On Linux the browser needs read/write access to the keyboard’s hidraw nodes (udev uaccess rule).</p>
+    <p class="onboard-note" style="margin-top:14px">Just want to test switches or latency? <button class="btn small" type="button" data-view="tester" style="margin-left:6px">Open Key Tester</button></p>
+  </div>
+</section>
+
+<div id="app" hidden>
+<!-- ======================= CONFIGURE ======================= -->
+<section id="view-configure" aria-label="Configure keymap">
+  <div class="banner" role="note">
+    <span><strong>Firmware build, not a live remap.</strong> Changes are a browser draft until you build and flash a full firmware image. The keyboard’s current keymap is never read back.</span>
+    <button class="btn small" type="button" data-view="info">Safety details</button>
+  </div>
+
+  <div class="stage-head">
+    <div id="layer-tabs" class="segmented" role="tablist" aria-label="Keymap layers"></div>
+    <div class="segmented" role="group" aria-label="Layout view">
+      <button id="view-flow84" type="button" aria-pressed="true">Flow84 layout</button>
+      <button id="view-matrix" type="button" aria-pressed="false">All 132 factory slots</button>
+    </div>
+  </div>
+
+  <div id="layer-panel" class="stage" role="tabpanel">
+    <div id="board-flow84" class="board-wrap">
+      <div class="board"><div id="plate" class="plate" role="group" aria-label="Flow84 keyboard"></div><span class="board-badge">LOFREE</span></div>
+    </div>
+    <div id="board-matrix" class="matrix-scroll" hidden><div id="matrix" class="matrix" role="group" aria-label="Factory 6 × 22 keymap slots"></div></div>
+    <div class="stage-foot">
+      <div class="legend-row">
+        <span class="legend-item"><span class="swatch selected"></span>Selected</span>
+        <span class="legend-item"><span class="swatch changed"></span>Changed in draft</span>
+        <span class="legend-item" id="legend-inherit"><span class="swatch inherit"></span>Same as base layer</span>
+      </div>
+      <span id="stage-note">Click a key, then pick an assignment below. Arrow keys move between keys.</span>
+    </div>
+  </div>
+
+  <div class="workbench">
+    <section class="panel panel-pad inspector" aria-labelledby="selected-title">
+      <div class="preview">
+        <div id="preview-cap" class="preview-cap" aria-hidden="true"></div>
+        <div><div id="selected-title" class="preview-title"></div><div id="selected-meta" class="preview-meta"></div></div>
+      </div>
+      <div class="kv">
+        <div><span>Factory</span><strong id="factory-action"></strong></div>
+        <div id="current-row"><span>Draft</span><strong id="current-action"></strong></div>
+      </div>
+      <div class="pair-box">
+        <label class="check"><input id="apply-both-os" type="checkbox"><span id="pair-label">Also apply to the other OS layer</span></label>
+        <small id="pair-description"></small>
+      </div>
+      <button id="reset-selected" class="btn" type="button">Reset key to factory</button>
+      <p class="inspector-note">Assignments edit the draft only. Each slot keeps its factory Fn-lock flag; unverified factory functions can only stay in their original slot.</p>
+    </section>
+
+    <section class="panel picker" aria-label="Assignment picker">
+      <div id="cat-list" class="cat-list" role="tablist" aria-label="Assignment categories"></div>
+      <div class="picker-main">
+        <div class="picker-head">
+          <input id="action-search" type="search" placeholder="Search all supported assignments…" autocomplete="off" aria-label="Search assignments">
+          <span id="picker-hint" class="picker-hint"></span>
+        </div>
+        <div id="combo-builder" class="combo-builder" hidden>
+          <h3>Build a key + left-modifier combination</h3>
+          <div class="combo-row">
+            <div id="combo-modifiers" class="mod-toggles" role="group" aria-label="Left modifiers"></div>
+            <select id="combo-key" aria-label="Combination key"></select>
+            <button id="apply-combo" class="btn primary" type="button">Assign</button>
+          </div>
+          <p id="combo-preview" class="combo-preview"></p>
+        </div>
+        <div id="tiles" class="tiles" role="list"></div>
+      </div>
+    </section>
+  </div>
+</section>
+
+<!-- ======================= REVIEW & FLASH ======================= -->
+<section id="view-flash" aria-label="Review and flash" hidden>
+  <div class="stepper">
+    <div id="step-build" class="step"><span class="dot">1</span><div><strong>Build</strong><small>Preview the draft as firmware</small></div></div>
+    <div id="step-review" class="step"><span class="dot">2</span><div><strong>Review</strong><small>Check digest and changes</small></div></div>
+    <div id="step-flash" class="step"><span class="dot">3</span><div><strong>Flash</strong><small>Verified keyboard, confirmed write</small></div></div>
+  </div>
+  <div class="flash-grid">
+    <div>
+      <section class="panel panel-pad" aria-labelledby="changes-title">
+        <div class="card-head"><div><h2 id="changes-title">Draft changes</h2><p class="panel-sub">Sparse overrides against authenticated factory firmware, not changes read from the keyboard.</p></div><span id="draft-revision" class="pill plain"></span></div>
+        <div id="draft-changes" class="change-list"></div>
+      </section>
+      <section class="panel panel-pad" aria-labelledby="build-title">
+        <div class="card-head"><h2 id="build-title">Firmware build</h2><button id="build" class="btn primary" type="button">Preview / Build firmware</button></div>
+        <div id="build-state" class="build-state" role="status">Build this draft to review its digest and download firmware.</div>
+        <div id="build-review" hidden>
+          <dl class="digest-block">
+            <dt>Firmware SHA-256</dt><dd id="build-digest" class="digest"></dd>
+            <dt>Image / payload changes</dt><dd id="build-size"></dd>
+            <dt>Executable instructions</dt><dd id="build-code"></dd>
+          </dl>
+          <details id="server-review"><summary>Builder’s exact change review</summary><div id="build-changes"></div></details>
+          <label class="check" style="margin-top:14px"><input id="review-ack" type="checkbox"><span>I reviewed this exact build and the firmware / Win-Mac limitations.</span></label>
+        </div>
+        <div class="actions" style="margin-top:14px"><button id="download-firmware" class="btn" type="button" disabled>Download firmware .bin</button></div>
+      </section>
+    </div>
+    <div>
+      <section class="panel panel-pad" aria-labelledby="status-title">
+        <div class="card-head"><div><h2 id="status-title">Keyboard &amp; flash</h2><p class="panel-sub">Flashing runs in this browser over WebHID. Nothing is sent until you confirm Flash or Restore; the active keymap is never read.</p></div><span id="job-badge" class="pill plain">No write job</span></div>
+        <div id="hid-missing" class="error-box" hidden>This browser has no WebHID. Use desktop Chrome, Edge, Opera or Brave. You can still build and download firmware.</div>
+        <div class="device-row">
+          <div><label class="field-label" for="device-select">Keyboard to write</label><select id="device-select"><option value="">Connect a keyboard first</option></select></div>
+          <button id="connect-device" class="btn" type="button">Connect…</button>
+        </div>
+        <div class="status-meta"><span id="device-description">No keyboard connected to this page.</span></div>
+        <div id="status-error" class="error-box" role="alert" hidden></div>
+        <div id="boot-prompt" class="boot-prompt" role="alert" hidden>
+          <strong>Keyboard is in update mode.</strong>
+          <span>Chrome forgot the bootloader device (3554:f800) or its chooser was closed. Click Connect bootloader and choose it in the chooser.</span>
+          <div class="actions"><button id="connect-boot" class="btn primary" type="button">Connect bootloader</button><button id="stop-boot" class="btn" type="button">Stop</button></div>
+        </div>
+        <p class="write-warning">Use the USB cable with the mode switch on ON, not BT. Keep the cable and power connected and this tab open until the job finishes. Software recovery is not guaranteed if the keyboard stops enumerating.</p>
+        <button id="flash" class="btn primary" type="button" disabled style="width:100%;justify-content:center;padding:11px">Flash reviewed firmware</button>
+        <div id="progress" class="progress" hidden><div id="progress-bar"></div></div>
+        <p id="flash-readiness" class="readiness">Connect the keyboard. Flash is an explicit separate action.</p>
+        <hr class="divider">
+        <div class="card-head"><div><h2 style="font-size:14px">Restore stock</h2><p id="restore-note" class="panel-sub">A separate full write of the authenticated original image. It also works when the keyboard is stuck in update mode: connect the bootloader and restore. It does not discard your browser draft.</p></div></div>
+        <button id="restore-stock" class="btn danger" type="button" disabled>Restore authenticated stock</button>
+        <pre id="job-log" class="log" role="log" aria-label="Firmware job log" aria-live="polite">No firmware write has been requested by this page.</pre>
+      </section>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= KEY TESTER ======================= -->
+<section id="view-tester" aria-label="Key tester" hidden>
+  <div class="tester-head">
+    <div class="tester-title-group">
+      <h2>Keyboard Tester</h2>
+      <p class="muted">Press keys on your Lofree Flow84 to verify switch actuation, test remapped keys, and check input latency.</p>
+    </div>
+    <div class="tester-actions">
+      <div class="segmented" role="group" aria-label="Key tester OS legends">
+        <button id="tester-os-win" type="button" aria-pressed="true">Windows</button>
+        <button id="tester-os-mac" type="button" aria-pressed="false">Mac</button>
+      </div>
+      <button id="tester-sound" class="btn small" type="button" aria-pressed="false" title="Toggle mechanical switch click sound">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+        <span id="tester-sound-label">Sound: Off</span>
+      </button>
+      <button id="tester-lock-os" class="btn small" type="button" aria-pressed="false" title="Enter fullscreen mode and activate the Keyboard Lock API to prevent OS and system hotkeys (Alt+Tab, Esc, Super/Win/Cmd)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <span id="tester-lock-label">Lock OS keys</span>
+      </button>
+      <label class="check tester-trap" title="Prevent browser shortcuts (Ctrl+S, Ctrl+P, Tab, F-keys, Backspace, Alt, etc.) while testing">
+        <input id="tester-trap-keys" type="checkbox" checked>
+        <span>Trap hotkeys</span>
+      </label>
+      <button id="tester-reset" class="btn small" type="button" title="Clear all tested keys and logs (Alt+R)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+        Reset test
+      </button>
+    </div>
+  </div>
+
+  <div class="stage tester-stage">
+    <div class="board-wrap">
+      <div class="board">
+        <div id="tester-plate" class="plate tester-plate" role="group" aria-label="Flow84 tester keyboard"></div>
+        <span class="board-badge">FLOW84 TESTER</span>
+      </div>
+    </div>
+
+    <!-- Extra keys tray for keys pressed that aren't on standard Flow84 layout -->
+    <div id="tester-extra-keys" class="tester-extra-tray" hidden>
+      <div class="tester-extra-label">Other Detected Keys (Not on standard 75% layout):</div>
+      <div id="tester-extra-list" class="tester-extra-chips"></div>
+    </div>
+
+    <div class="tester-stats-row">
+      <div class="tester-progress-wrap">
+        <span class="pill plain"><strong id="tester-count">0</strong> / 84 keys tested (<span id="tester-pct">0%</span>)</span>
+        <span class="pill plain"><strong id="tester-total-presses">0</strong> total strokes</span>
+      </div>
+      <div class="tester-legend-row">
+        <span class="legend-item"><span class="swatch tester-swatch-active"></span>Active / Down</span>
+        <span class="legend-item"><span class="swatch tester-swatch-tested"></span>Tested / Passed</span>
+        <span class="legend-item"><span class="swatch tester-swatch-untested"></span>Untested</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tester-workbench">
+    <!-- Telemetry Inspector Card -->
+    <section class="panel panel-pad tester-telemetry" aria-labelledby="telemetry-title">
+      <h3 id="telemetry-title" class="tester-panel-title">Last Keystroke</h3>
+      <div class="tester-last-key-hero">
+        <div id="tester-hero-code" class="tester-hero-code">—</div>
+        <div id="tester-hero-sub" class="tester-hero-sub">Press any key to test</div>
+      </div>
+      
+      <div class="tester-kv-grid">
+        <div class="tester-kv-item">
+          <span class="muted">event.key</span>
+          <code id="tester-val-key" class="tester-code-val">—</code>
+        </div>
+        <div class="tester-kv-item">
+          <span class="muted">event.code</span>
+          <code id="tester-val-code" class="tester-code-val">—</code>
+        </div>
+        <div class="tester-kv-item">
+          <span class="muted">event.keyCode</span>
+          <code id="tester-val-keycode" class="tester-code-val">—</code>
+        </div>
+        <div class="tester-kv-item">
+          <span class="muted">location</span>
+          <code id="tester-val-location" class="tester-code-val">—</code>
+        </div>
+        <div class="tester-kv-item">
+          <span class="muted">interval</span>
+          <code id="tester-val-interval" class="tester-code-val">—</code>
+        </div>
+        <div class="tester-kv-item">
+          <span class="muted">press count</span>
+          <code id="tester-val-presses" class="tester-code-val">—</code>
+        </div>
+      </div>
+
+      <div class="tester-modifiers-box">
+        <div class="tester-section-subhead">Modifiers &amp; Locks</div>
+        <div class="tester-mod-chips" id="tester-mod-chips">
+          <span class="mod-chip" data-mod="ControlLeft">L-Ctrl</span>
+          <span class="mod-chip" data-mod="ControlRight">R-Ctrl</span>
+          <span class="mod-chip" data-mod="ShiftLeft">L-Shift</span>
+          <span class="mod-chip" data-mod="ShiftRight">R-Shift</span>
+          <span class="mod-chip" data-mod="AltLeft">L-Alt</span>
+          <span class="mod-chip" data-mod="AltRight">R-Alt</span>
+          <span class="mod-chip" data-mod="MetaLeft">L-Win/Cmd</span>
+          <span class="mod-chip" data-mod="MetaRight">R-Win/Cmd</span>
+          <span class="mod-chip lock" data-lock="CapsLock">Caps Lock</span>
+          <span class="mod-chip lock" data-lock="NumLock">Num Lock</span>
+          <span class="mod-chip lock" data-lock="ScrollLock">Scroll Lock</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Keystroke Log & Chatter Detector -->
+    <section class="panel panel-pad tester-log-panel" aria-labelledby="log-title">
+      <div class="tester-log-head">
+        <div>
+          <h3 id="log-title" class="tester-panel-title">Keystroke History</h3>
+          <small class="muted">Down/up events with interval timing &amp; chatter detection</small>
+        </div>
+        <button id="tester-clear-log" class="btn ghost small" type="button">Clear log</button>
+      </div>
+
+      <div class="tester-log-container" id="tester-log-container">
+        <div class="tester-log-empty" id="tester-log-empty">No keystrokes recorded yet. Focus anywhere and start typing.</div>
+        <table class="tester-log-table" id="tester-log-table" hidden>
+          <thead>
+            <tr>
+              <th style="width: 75px;">State</th>
+              <th>Key</th>
+              <th>Code</th>
+              <th style="width: 85px;">Interval</th>
+              <th>Mods</th>
+              <th style="width: 90px;">Notes</th>
+            </tr>
+          </thead>
+          <tbody id="tester-log-body"></tbody>
+        </table>
+      </div>
+
+      <div class="tester-hw-callout">
+        <div class="callout-title"><strong>Lofree Flow84 Hardware &amp; Firmware Notes</strong></div>
+        <ul>
+          <li><strong>Preventing OS &amp; browser shortcuts:</strong> "Trap hotkeys" blocks browser shortcuts (e.g. <code>Ctrl+S</code>, <code>Ctrl+P</code>, <code>Tab</code>, <code>F1–F12</code>, <code>Alt</code>). To capture OS-level keys (such as <code>Alt+Tab</code>, <code>Escape</code>, and <code>Win/Cmd</code>) without triggering window manager actions, click <strong>Lock OS keys</strong> to enter fullscreen with Chrome’s Keyboard Lock API (<code>navigator.keyboard.lock</code>).</li>
+          <li><strong>Fn key:</strong> Handled entirely inside the keyboard hardware to activate the Fn layer. Does not emit a scancode to the operating system unless remapped.</li>
+          <li><strong>Caps Lock to Ctrl patch:</strong> If you flashed the <code>caps-to-ctrl</code> profile, pressing your physical Caps Lock key will register as <code>ControlLeft</code> without toggling the OS CapsLock indicator.</li>
+          <li><strong>Win / Mac toggle:</strong> The physical toggle switch on the back selects between Windows and Mac mode. Test your modifier arrangements (Ctrl vs Cmd, Alt vs Opt) to confirm your operating system layout.</li>
+        </ul>
+      </div>
+    </section>
+  </div>
+</section>
+
+<!-- ======================= SAFETY & INFO ======================= -->
+<section id="view-info" aria-label="Safety and information" hidden>
+  <div class="info-grid">
+    <section class="panel panel-pad">
+      <h2>How this remapper works</h2>
+      <p><strong>Runs entirely in this browser.</strong> Builds, validation and flashing happen locally from the stock firmware you loaded. Flashing talks to the keyboard over WebHID using the same reports and checks as the hardware-tested Linux flasher.</p>
+      <p><strong>Firmware replacement, not a live remap.</strong> Every edit requires a full firmware reflash. Builds change only approved keymap data, required checksums, and one fixed instruction.</p>
+      <p><strong>Win/Mac switch:</strong> stock firmware reloads the keymap from settings storage when switching OS mode, which would undo a flashed layout. Remapped builds retarget that one call (<code>0x1b06a</code>) to the same ROM keymap loader used at boot, so the flashed layout survives the switch and is never written to settings storage. Restoring stock brings back the original behavior.</p>
+      <p>Keep the USB cable connected throughout flashing or restoration. Only flash when you can tolerate interruption; software recovery is not guaranteed if the keyboard stops enumerating.</p>
+      <h2 style="margin-top:18px">Firmware limitations</h2>
+      <ul id="model-limitations"></ul>
+    </section>
+    <section class="panel panel-pad">
+      <h2>Flow84 layout view</h2>
+      <p>The 84 keys are drawn from the Flow84’s 75% keycap arrangement. Each key is placed on the factory slot whose <strong>Windows-layer</strong> function matches its keycap legend (Caps Lock → slot 66, the hardware-tested remap). Factory Fn-layer functions agree with the printed Fn legends (F1/F2 brightness, F7–F12 media, Fn+Del lock, Fn+1/2/3, Fn+N/M). This is a label-based placement, not a recovered wiring diagram.</p>
+      <p>The remaining 48 factory slots (unused, numpad and other-keyboard entries) appear only in <strong>All 132 factory slots</strong>.</p>
+      <p>Keys shown faded on a Fn layer have the same assignment as the matching base layer.</p>
+      <h2 style="margin-top:18px">Settings</h2>
+      <p id="settings-note"></p>
+      <h2 style="margin-top:18px">Profiles</h2>
+      <p>Profiles and drafts contain only mapping overrides (<code>oe915-remap-v1</code>). They are not VIA/QMK JSON. Downloading, importing, resetting and previewing never flash the keyboard.</p>
+      <h2 style="margin-top:18px">Stock firmware</h2>
+      <p id="base-digest" class="digest muted"></p>
+      <button id="forget-stock" class="btn small danger" type="button">Forget loaded stock firmware</button>
+    </section>
+  </div>
+</section>
+</div>
+</div>
+</div>
+</div>
+
+<dialog id="write-confirm" aria-labelledby="confirm-title">
+  <h2 id="confirm-title"></h2>
+  <p id="confirm-description"></p>
+  <div id="confirm-details" class="confirm-details"></div>
+  <p><strong>Keep the USB cable connected until the job has finished.</strong> Do not switch OS mode or disconnect power during the write. A stock restore does not guarantee removal of previously persisted mappings/settings.</p>
+  <label class="check"><input id="confirm-ack" type="checkbox"><span>I understand this writes firmware to the keyboard shown above, connected by USB cable with the mode switch on ON, and I accept the disclosed limitations.</span></label>
+  <div id="confirm-error" class="error-box" role="alert" hidden style="margin-top:14px"></div>
+  <div class="dialog-actions"><button id="confirm-cancel" class="btn" type="button">Cancel</button><button id="confirm-write" class="btn primary" type="button" disabled>Confirm firmware write</button></div>
+</dialog>
+
+<script src="oe915-core.js"></script>
+<script>
+'use strict';
+(() => {
+  const $ = id => document.getElementById(id);
+  const FORMAT = 'oe915-remap-v1';
+  const STORAGE = 'oe915.remapper.draft.v1';
+  const STOCK_STORAGE = 'oe915.stock.v1';
+  const OS_PAIR = {win: 'mac', mac: 'win', winfn: 'macfn', macfn: 'winfn'};
+  const BASE_LAYER = {winfn: 'win', macfn: 'mac'};
+
+  /* Flow84 75% arrangement: [factory slot, x, y, width, modifier-coloured].
+     Slots are those whose Windows-layer factory function matches each keycap legend. */
+  const FLOW84 = [
+    [0,0,0,1,1],[1,1,0],[2,2,0],[3,3,0],[4,4,0],[5,5,0],[6,6,0],[7,7,0],[8,8,0],[9,9,0],[10,10,0],[11,11,0],[34,12,0],[12,13,0,1,1],[35,14,0,1,1],[57,15,0,1,1],
+    [22,0,1],[23,1,1],[24,2,1],[25,3,1],[26,4,1],[27,5,1],[28,6,1],[29,7,1],[30,8,1],[31,9,1],[32,10,1],[54,11,1],[33,12,1],[56,13,1,2,1],[36,15,1,1,1],
+    [44,0,2,1.5,1],[45,1.5,2],[46,2.5,2],[47,3.5,2],[48,4.5,2],[49,5.5,2],[50,6.5,2],[51,7.5,2],[52,8.5,2],[53,9.5,2],[76,10.5,2],[55,11.5,2],[78,12.5,2],[100,13.5,2,1.5],[58,15,2,1,1],
+    [66,0,3,1.75,1],[67,1.75,3],[68,2.75,3],[69,3.75,3],[70,4.75,3],[71,5.75,3],[72,6.75,3],[73,7.75,3],[74,8.75,3],[75,9.75,3],[98,10.75,3],[77,11.75,3],[122,12.75,3,2.25,1],[80,15,3,1,1],
+    [88,0,4,2.25,1],[89,2.25,4],[90,3.25,4],[91,4.25,4],[92,5.25,4],[93,6.25,4],[94,7.25,4],[95,8.25,4],[96,9.25,4],[97,10.25,4],[99,11.25,4],[121,12.25,4,1.75,1],[102,14,4,1,1],[79,15,4,1,1],
+    [110,0,5,1.25,1],[111,1.25,5,1.25,1],[112,2.5,5,1.25,1],[115,3.75,5,6.25],[117,10,5,1,1],[118,11,5,1,1],[120,12,5,1,1],[101,13,5,1,1],[123,14,5,1,1],[124,15,5,1,1],
+  ].map(([index, x, y, w = 1, mod = 0]) => ({index, x, y, w, mod: Boolean(mod)}));
+  const ON_BOARD = new Map(FLOW84.map(key => [key.index, key]));
+
+  /* Short keycap legends for HID keyboard usages. */
+  const KEY_LEGEND = {40:'Enter',41:'Esc',42:'Backspace',43:'Tab',44:'Space',45:'-',46:'=',47:'[',48:']',49:'\\',50:'#',51:';',52:"'",53:'`',54:',',55:'.',56:'/',57:'Caps',
+    70:'PrtSc',71:'ScrLk',72:'Pause',73:'Ins',74:'Home',75:'PgUp',76:'Del',77:'End',78:'PgDn',79:'→',80:'←',81:'↓',82:'↑',83:'NumLk',84:'/',85:'*',86:'−',87:'+',88:'Enter',99:'.',
+    100:'\\',101:'Menu',133:',',135:'Ro',136:'Kana',137:'¥',138:'Henkan',139:'Muhen',144:'Hangul',145:'Hanja'};
+  const SHIFTED = {30:'!',31:'@',32:'#',33:'$',34:'%',35:'^',36:'&',37:'*',38:'(',39:')',45:'_',46:'+',47:'{',48:'}',49:'|',50:'~',51:':',52:'"',53:'~',54:'<',55:'>',56:'?',100:'|'};
+  const MEDIA_LEGEND = {111:'Bright +',112:'Bright −',181:'Next',182:'Prev',205:'Play',226:'Mute',233:'Vol +',234:'Vol −',402:'Calc',545:'Search'};
+  const MOD_NAMES = {
+    win: {1:'Ctrl',2:'Shift',4:'Alt',8:'Win',16:'R Ctrl',32:'R Shift',64:'R Alt',128:'R Win'},
+    mac: {1:'⌃ Ctrl',2:'⇧ Shift',4:'⌥ Opt',8:'⌘ Cmd',16:'R ⌃',32:'R ⇧',64:'R ⌥',128:'R ⌘'},
+  };
+  const COMBO_MODS = {win: {1:'Ctrl',2:'Shift',4:'Alt',8:'Win'}, mac: {1:'⌃',2:'⇧',4:'⌥',8:'⌘'}};
+  const CATEGORIES = [
+    ['basic','Basic'],['mods','Modifiers'],['fkeys','F-keys'],['nav','Navigation'],['media','Media'],
+    ['numpad','Numpad'],['intl','International'],['combos','Combos'],['special','Special'],['other','Other'],
+  ];
+
+  const state = {firmware:null,model:null,profile:null,layer:'win',index:66,view:'configure',layout:'flow84',category:'basic',revision:0,build:null,building:false,devices:[],job:null,bootWaiter:null,requesting:false,confirmation:null};
+  const lowType = value => value & 0x7f;
+  const element = (tag, text, className) => {const node = document.createElement(tag); if (text !== undefined) node.textContent = text; if (className) node.className = className; return node;};
+  const layerById = id => state.model.layers.find(layer => layer.id === id);
+  const stockKey = (layer, index) => layerById(layer).keys.find(key => key.index === index);
+  const changedKey = (layer, index) => state.profile.changes.find(change => change.layer === layer && change.index === index);
+  const currentKey = (layer, index) => changedKey(layer, index) || stockKey(layer, index);
+  const equivalent = (a, b) => lowType(a.type) === lowType(b.type) && a.value === b.value;
+  const osOf = layer => layer.startsWith('mac') ? 'mac' : 'win';
+  const hex = (value, width) => value.toString(16).padStart(width, '0');
+  const showError = (message, target = 'global-error') => {$(target).textContent = message; $(target).hidden = !message;};
+
+  function blankProfile() { return {format: FORMAT, base_sha256: state.model.base_sha256, changes: [], settings: {}}; }
+  function canonicalProfile() {
+    const order = new Map(state.model.layers.map((layer, index) => [layer.id, index]));
+    return {format: FORMAT, base_sha256: state.model.base_sha256,
+      changes: state.profile.changes.map(change => ({...change})).sort((a, b) => order.get(a.layer) - order.get(b.layer) || a.index - b.index),
+      settings: {}};
+  }
+  function supportedKeyActions() {
+    const unique = new Map();
+    for (const action of state.model.actions) { if (lowType(action.type) === 2 && action.value > 0 && action.value <= 255 && !unique.has(action.value)) unique.set(action.value, action); }
+    return [...unique.values()];
+  }
+  function modifierActions() { return state.model.actions.filter(action => lowType(action.type) === 1 && [1, 2, 4, 8].includes(action.value)).filter((action, index, array) => array.findIndex(item => item.value === action.value) === index); }
+  function actionLabel(action) {
+    if (typeof action.label === 'string') return action.label;
+    if (lowType(action.type) === 7) {
+      const key = supportedKeyActions().find(item => item.value === (action.value >>> 8));
+      const mods = modifierActions().filter(item => (action.value & item.value) !== 0).map(item => item.label);
+      if (key && mods.length) return [...mods, key.label].join(' + ');
+    }
+    const match = state.model.actions.find(item => equivalent(item, action));
+    if (match) return match.label;
+    for (const layer of state.model.layers) { const key = layer.keys.find(item => equivalent(item, action)); if (key) return key.label; }
+    return `Unsupported encoding (${action.type}:${action.value})`;
+  }
+
+  /* Keycap legend: {top, main, sub, fn, none} for an action on a given OS layer. */
+  function keyLegend(usage) {
+    if (usage >= 4 && usage <= 29) return {main: String.fromCharCode(61 + usage)};
+    if (usage >= 30 && usage <= 39) return {top: SHIFTED[usage], main: String((usage - 29) % 10)};
+    if (usage >= 58 && usage <= 69) return {main: `F${usage - 57}`};
+    if (usage >= 89 && usage <= 98) return {main: String((usage - 88) % 10), sub: 'Keypad'};
+    if ([84, 85, 86, 87, 88, 99, 133].includes(usage)) return {main: KEY_LEGEND[usage], sub: 'Keypad'};
+    if (usage === 50 || usage === 100) return {top: SHIFTED[usage], main: KEY_LEGEND[usage], sub: 'ISO'};
+    if (KEY_LEGEND[usage]) return {top: SHIFTED[usage], main: KEY_LEGEND[usage]};
+    return {main: `0x${hex(usage, 2)}`};
+  }
+  function legendFor(action, os) {
+    const type = lowType(action.type), raw = action.type;
+    if (![0, 1, 2, 3, 6, 7].includes(type)) return {main: 'Func', sub: `${hex(raw, 2)}:${hex(action.value, 4)}`};
+    if (type === 0) return {main: 'None', none: true};
+    if (type === 1) {
+      const names = Object.entries(MOD_NAMES[os]).filter(([bit]) => action.value & Number(bit)).map(([, name]) => name);
+      return {main: names.join(' + ')};
+    }
+    if (type === 2) return keyLegend(action.value);
+    if (type === 3) return {main: MEDIA_LEGEND[action.value] || `0x${hex(action.value, 3)}`, sub: 'Media'};
+    if (type === 6) return {main: 'Fn', fn: true};
+    const mods = Object.entries(COMBO_MODS[os]).filter(([bit]) => action.value & Number(bit)).map(([, name]) => name);
+    const key = keyLegend(action.value >>> 8).main;
+    return {main: os === 'mac' ? `${mods.join('')}${key}` : [...mods, key].join('+'), sub: 'Combo'};
+  }
+  function sizeClass(text) { return text.length > 9 ? 'tiny' : text.length > 6 ? 'small' : ''; }
+  function categoryOf(action) {
+    const type = action.type;
+    if (type === 0 || type === 6) return 'special';
+    if (type === 1) return 'mods';
+    if (type === 3) return 'media';
+    if (type === 7) return 'combos';
+    if (type !== 2) return 'special';
+    const v = action.value;
+    if (v === 50) return 'intl';
+    if (v >= 4 && v <= 57) return 'basic';
+    if (v >= 58 && v <= 69) return 'fkeys';
+    if ((v >= 70 && v <= 82) || v === 101) return 'nav';
+    if ((v >= 83 && v <= 99) || v === 133) return 'numpad';
+    if (v === 100 || (v >= 135 && v <= 145)) return 'intl';
+    return 'other';
+  }
+
+  /* Validation is the shared core's normalizeProfile (port of oe915_patch.normalize_profile). */
+  function normalizeProfile(input) {
+    if (input && typeof input === 'object' && !Array.isArray(input) && input.format !== FORMAT) throw new Error(`Unsupported profile format. Expected ${FORMAT}; VIA, QMK, and other profile formats cannot be imported.`);
+    return state.firmware.normalizeProfile(input);
+  }
+  function saveDraft() {
+    try { localStorage.setItem(STORAGE, JSON.stringify(canonicalProfile())); $('draft-storage-state').textContent = ''; }
+    catch { $('draft-storage-state').textContent = 'Browser storage unavailable; export to keep your draft'; }
+  }
+  function invalidateBuild() {
+    state.build = null; $('review-ack').checked = false; $('build-review').hidden = true; $('build-state').className = 'build-state'; $('build-state').textContent = 'Draft changed. Preview / Build again before downloading or flashing.';
+    if (state.confirmation?.kind === 'flash') { $('write-confirm').close(); state.confirmation = null; }
+  }
+  function draftChanged() { state.revision++; invalidateBuild(); saveDraft(); renderBoard(); renderSelected(); renderDraft(); renderTabs(); updateControls(); }
+  function setMapping(layer, index, action) {
+    state.profile.changes = state.profile.changes.filter(change => !(change.layer === layer && change.index === index));
+    if (!equivalent(stockKey(layer, index), action)) state.profile.changes.push({layer, index, type: lowType(action.type), value: action.value});
+  }
+  function assign(action) {
+    const layers = [state.layer]; if ($('apply-both-os').checked) layers.push(OS_PAIR[state.layer]);
+    if (action.editable === false && layers.some(layer => !equivalent(stockKey(layer, state.index), action))) {
+      showError('Unknown factory functions can only be preserved or reset in their original slots. Uncheck the other-OS option or reset each slot separately.'); return;
+    }
+    for (const layer of layers) setMapping(layer, state.index, action);
+    showError(''); draftChanged();
+  }
+
+  /* ---------------- views ---------------- */
+  function setView(view) {
+    state.view = view;
+    const views = ['configure', 'flash', 'tester', 'info'];
+    if (!state.firmware && (view === 'configure' || view === 'flash')) {
+      $('stock-loader').hidden = false;
+      $('app').hidden = true;
+    } else {
+      $('stock-loader').hidden = true;
+      $('app').hidden = false;
+      for (const name of views) {
+        const el = $(`view-${name}`);
+        if (el) el.hidden = name !== view;
+      }
+    }
+    for (const button of document.querySelectorAll('.rail-btn')) {
+      if (button.dataset.view === view) button.setAttribute('aria-current', 'page');
+      else button.removeAttribute('aria-current');
+    }
+    if (view === 'tester') {
+      renderTesterBoard();
+    }
+    window.scrollTo({top: 0});
+  }
+
+  /* ---------------- layers ---------------- */
+  function renderTabs() {
+    const tabs = $('layer-tabs'); tabs.replaceChildren();
+    state.model.layers.forEach((layer, number) => {
+      const button = element('button', undefined); button.type = 'button'; button.id = `layer-${layer.id}`; button.setAttribute('role', 'tab'); button.setAttribute('aria-controls', 'layer-panel');
+      button.setAttribute('aria-selected', String(layer.id === state.layer)); button.tabIndex = layer.id === state.layer ? 0 : -1;
+      const count = state.profile.changes.filter(change => change.layer === layer.id).length;
+      button.append(element('span', String(number), 'layer-num'), element('span', layer.label));
+      if (count) button.append(element('span', String(count), 'count-badge'));
+      button.addEventListener('click', () => selectLayer(layer.id));
+      button.addEventListener('keydown', event => {
+        const index = state.model.layers.findIndex(item => item.id === state.layer), total = state.model.layers.length; let next;
+        if (event.key === 'ArrowRight') next = (index + 1) % total; else if (event.key === 'ArrowLeft') next = (index + total - 1) % total; else if (event.key === 'Home') next = 0; else if (event.key === 'End') next = total - 1; else return;
+        event.preventDefault(); selectLayer(state.model.layers[next].id); $(`layer-${state.layer}`).focus();
+      });
+      tabs.append(button);
+    });
+    $('layer-panel').setAttribute('aria-labelledby', `layer-${state.layer}`);
+  }
+  function selectLayer(id) { state.layer = id; renderTabs(); renderBoard(); renderSelected(); }
+
+  /* ---------------- keyboard rendering ---------------- */
+  function keyButton(layer, factory, extraClass) {
+    const change = changedKey(layer.id, factory.index), current = change || factory, os = osOf(layer.id);
+    const legend = legendFor(current, os), selected = factory.index === state.index;
+    const base = BASE_LAYER[layer.id], inherit = base && equivalent(currentKey(base, factory.index), current) && !change;
+    const classes = ['key', extraClass];
+    if (change) classes.push('changed');
+    if (inherit) classes.push('inherit');
+    if (legend.fn) classes.push('fn');
+    if (legend.none) classes.push('disabled-action');
+    const button = element('button', undefined, classes.filter(Boolean).join(' '));
+    button.type = 'button'; button.dataset.index = factory.index; button.id = `slot-${layer.id}-${factory.index}`;
+    button.tabIndex = selected ? 0 : -1; button.setAttribute('aria-pressed', String(selected));
+    const currentLabel = actionLabel(current);
+    button.setAttribute('aria-label', `${layer.label}, slot ${factory.index}. Factory: ${factory.label}. Draft: ${currentLabel}${change ? '. Modified' : ''}.`);
+    button.title = `${currentLabel}\nSlot ${factory.index} · R${factory.row} C${factory.col}${change ? `\nFactory: ${factory.label}` : ''}`;
+    const cap = element('span', undefined, 'cap');
+    if (legend.top) cap.append(element('span', legend.top, 'leg-top'));
+    cap.append(element('span', legend.main, `leg ${sizeClass(legend.main)}`.trim()));
+    if (change) cap.append(element('span', `was ${legendFor(factory, os).main}`, 'sub'));
+    else if (legend.sub) cap.append(element('span', legend.sub, 'sub'));
+    button.append(cap);
+    button.addEventListener('click', () => selectSlot(factory.index));
+    button.addEventListener('keydown', event => navigate(event, factory.index));
+    return button;
+  }
+  function renderBoard() {
+    const layer = layerById(state.layer), flow = state.layout === 'flow84';
+    $('board-flow84').hidden = !flow; $('board-matrix').hidden = flow;
+    $('view-flow84').setAttribute('aria-pressed', String(flow)); $('view-matrix').setAttribute('aria-pressed', String(!flow));
+    $('legend-inherit').hidden = !BASE_LAYER[state.layer];
+    if (flow) {
+      const plate = $('plate'); plate.replaceChildren();
+      for (const position of FLOW84) {
+        const button = keyButton(layer, stockKey(layer.id, position.index), position.mod ? 'mod' : '');
+        Object.assign(button.style, {left: `${position.x / 16 * 100}%`, top: `${position.y / 6 * 100}%`, width: `${position.w / 16 * 100}%`, height: `${100 / 6}%`});
+        plate.append(button);
+      }
+      const offBoard = state.profile.changes.filter(change => change.layer === layer.id && !ON_BOARD.has(change.index)).length;
+      $('stage-note').textContent = offBoard
+        ? `${offBoard} change${offBoard === 1 ? '' : 's'} on this layer ${offBoard === 1 ? 'is' : 'are'} on slots not on the Flow84 layout. See All 132 factory slots.`
+        : 'Click a key, then pick an assignment below. Arrow keys move between keys.';
+    } else {
+      const matrix = $('matrix'); matrix.replaceChildren(); matrix.append(element('span', '', 'axis'));
+      for (let col = 0; col < state.model.cols; col++) matrix.append(element('span', `C${col}`, 'axis'));
+      for (let row = 0; row < state.model.rows; row++) {
+        matrix.append(element('span', `R${row}`, 'axis'));
+        for (let col = 0; col < state.model.cols; col++) {
+          const factory = layer.keys.find(key => key.row === row && key.col === col);
+          matrix.append(factory ? keyButton(layer, factory, ON_BOARD.has(factory.index) ? '' : 'offboard') : element('span'));
+        }
+      }
+      $('stage-note').textContent = 'Every factory slot, in table order. Striped slots are not on the Flow84 layout (unused, numpad or other-keyboard entries).';
+    }
+  }
+  function selectSlot(index, focus = false) {
+    state.index = index;
+    for (const button of document.querySelectorAll('#plate .key, #matrix .key')) { const selected = Number(button.dataset.index) === index; button.setAttribute('aria-pressed', String(selected)); button.tabIndex = selected ? 0 : -1; }
+    renderSelected();
+    if (focus) { const button = $(`slot-${state.layer}-${index}`); button?.focus({preventScroll: true}); button?.scrollIntoView({block: 'nearest', inline: 'nearest'}); }
+  }
+  function navigate(event, index) {
+    if (!['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    let next;
+    if (state.layout === 'matrix') {
+      const key = stockKey(state.layer, index); let row = key.row, col = key.col;
+      if (event.key === 'ArrowRight') col = Math.min(state.model.cols - 1, col + 1); else if (event.key === 'ArrowLeft') col = Math.max(0, col - 1);
+      else if (event.key === 'ArrowDown') row = Math.min(state.model.rows - 1, row + 1); else if (event.key === 'ArrowUp') row = Math.max(0, row - 1);
+      else if (event.key === 'Home') col = 0; else col = state.model.cols - 1;
+      next = row * state.model.cols + col;
+    } else {
+      const here = ON_BOARD.get(index); if (!here) return;
+      const center = key => key.x + key.w / 2, cx = center(here);
+      const sameRow = FLOW84.filter(key => key.y === here.y).sort((a, b) => a.x - b.x);
+      if (event.key === 'ArrowRight') next = sameRow.find(key => key.x > here.x)?.index;
+      else if (event.key === 'ArrowLeft') next = sameRow.filter(key => key.x < here.x).pop()?.index;
+      else if (event.key === 'Home') next = sameRow[0].index;
+      else if (event.key === 'End') next = sameRow[sameRow.length - 1].index;
+      else {
+        const row = here.y + (event.key === 'ArrowDown' ? 1 : -1);
+        next = FLOW84.filter(key => key.y === row).sort((a, b) => Math.abs(center(a) - cx) - Math.abs(center(b) - cx))[0]?.index;
+      }
+    }
+    if (next !== undefined && stockKey(state.layer, next)) selectSlot(next, true);
+  }
+  function setLayout(layout) {
+    state.layout = layout;
+    if (layout === 'flow84' && !ON_BOARD.has(state.index)) state.index = 66;
+    renderBoard(); renderSelected();
+  }
+
+  /* ---------------- inspector + picker ---------------- */
+  function renderSelected() {
+    const factory = stockKey(state.layer, state.index), current = currentKey(state.layer, state.index), layer = layerById(state.layer), pair = layerById(OS_PAIR[state.layer]);
+    const changed = Boolean(changedKey(state.layer, state.index)), os = osOf(state.layer), legend = legendFor(current, os);
+    $('preview-cap').textContent = legend.main;
+    $('selected-title').textContent = ON_BOARD.has(state.index) ? `${legendFor(stockKey(BASE_LAYER[state.layer] || state.layer, state.index), os).main} key` : `Factory slot ${factory.index}`;
+    $('selected-meta').textContent = `${layer.label} · slot ${factory.index} · row ${factory.row}, column ${factory.col}${ON_BOARD.has(state.index) ? '' : ' · not on Flow84 layout'}`;
+    $('factory-action').textContent = factory.label; $('current-action').textContent = actionLabel(current);
+    $('current-row').className = changed ? 'is-changed' : '';
+    $('reset-selected').disabled = !changed && !($('apply-both-os').checked && changedKey(pair.id, state.index));
+    $('pair-label').textContent = `Also apply to ${pair.label}`;
+    $('pair-description').textContent = `When checked, assigning or resetting affects slot ${factory.index} on ${layer.label} and ${pair.label}. Other layers are untouched.`;
+    renderPicker();
+  }
+  function renderCategories(counts) {
+    const list = $('cat-list'); list.replaceChildren();
+    for (const [id, label] of CATEGORIES) {
+      if (!counts[id] && id !== 'combos') continue;
+      const button = element('button', undefined); button.type = 'button'; button.dataset.category = id; button.setAttribute('role', 'tab'); button.setAttribute('aria-selected', String(id === state.category));
+      button.append(element('span', label), element('span', String(counts[id] || 0), 'n'));
+      button.addEventListener('click', () => { state.category = id; $('action-search').value = ''; renderPicker(); });
+      list.append(button);
+    }
+  }
+  function tile(action, os, current) {
+    const legend = legendFor(action, os), label = actionLabel(action);
+    const button = element('button', undefined, `tile${legend.fn ? ' fn' : ''}${equivalent(action, current) ? ' current' : ''}${legend.main.length > 9 ? ' wide' : ''}`);
+    button.type = 'button'; button.setAttribute('role', 'listitem'); button.title = label; button.setAttribute('aria-label', `Assign ${label}`);
+    if (legend.top) button.append(element('span', legend.top, 't-top'));
+    button.append(element('span', legend.main, `t-main ${legend.main.length > 9 ? '' : sizeClass(legend.main)}`.trim()));
+    if (legend.sub) button.append(element('span', legend.sub, 't-sub'));
+    const layers = [state.layer]; if ($('apply-both-os').checked) layers.push(OS_PAIR[state.layer]);
+    if (action.editable === false) {
+      button.disabled = layers.some(layer => !equivalent(stockKey(layer, state.index), action));
+      if (button.disabled) button.title = `${label}\nOnly available in its original factory slot.`;
+    }
+    button.addEventListener('click', () => assign(action));
+    return button;
+  }
+  function renderPicker() {
+    const os = osOf(state.layer), current = currentKey(state.layer, state.index), search = $('action-search').value.trim().toLowerCase();
+    const counts = {};
+    for (const action of state.model.actions) { const id = categoryOf(action); counts[id] = (counts[id] || 0) + 1; }
+    if (!counts[state.category] && state.category !== 'combos') state.category = 'basic';
+    renderCategories(counts);
+    const tiles = $('tiles'); tiles.replaceChildren();
+    $('combo-builder').hidden = Boolean(search) || state.category !== 'combos';
+    let shown;
+    if (search) {
+      shown = state.model.actions.filter(action => `${action.label} ${legendFor(action, os).main} ${action.id}`.toLowerCase().includes(search));
+      for (const [id, label] of CATEGORIES) {
+        const group = shown.filter(action => categoryOf(action) === id); if (!group.length) continue;
+        tiles.append(element('div', label, 'group-title'));
+        for (const action of group) tiles.append(tile(action, os, current));
+      }
+      if (!shown.length) tiles.append(element('p', 'No supported assignment matches this search.', 'empty'));
+      $('picker-hint').textContent = `${shown.length} result${shown.length === 1 ? '' : 's'}`;
+    } else {
+      shown = state.model.actions.filter(action => categoryOf(action) === state.category).sort((a, b) => (b.editable !== false) - (a.editable !== false));
+      if (state.category === 'combos' && shown.length) tiles.append(element('div', 'Factory combinations', 'group-title'));
+      for (const action of shown) tiles.append(tile(action, os, current));
+      $('picker-hint').textContent = state.category === 'special' ? 'Factory functions are fixed to their original slot.' : 'Click to assign to the selected key.';
+    }
+    renderCombo();
+  }
+  function populateCombinations() {
+    $('combo-key').replaceChildren();
+    for (const action of supportedKeyActions()) { const option = element('option', action.label); option.value = action.value; $('combo-key').append(option); }
+    $('combo-key').value = '4';
+    for (const action of modifierActions()) {
+      const label = element('label'), input = element('input'); input.type = 'checkbox'; input.value = action.value; input.id = `combo-mod-${action.value}`;
+      label.append(input, element('span', action.label.replace('Left ', '').replace('GUI / Command', 'Win / Cmd')));
+      input.addEventListener('change', renderCombo); $('combo-modifiers').append(label);
+    }
+  }
+  function comboAction() {
+    const mask = [...$('combo-modifiers').querySelectorAll('input:checked')].reduce((value, input) => value | Number(input.value), 0), usage = Number($('combo-key').value);
+    if (!mask || !supportedKeyActions().some(key => key.value === usage)) return null;
+    return {type: 7, value: (usage << 8) | mask};
+  }
+  function renderCombo() {
+    const action = comboAction(); $('apply-combo').disabled = !action; $('combo-preview').replaceChildren();
+    if (action) $('combo-preview').append(element('strong', legendFor(action, osOf(state.layer)).main), element('span', ` · ${actionLabel(action)}`));
+    else $('combo-preview').textContent = 'Choose at least one modifier. One simultaneous chord, not a macro.';
+  }
+
+  /* ---------------- review ---------------- */
+  function appendReview(container, changes, settings) {
+    container.replaceChildren();
+    if (!changes.length && !settings.length) { container.append(element('p', 'No overrides. This profile builds authenticated stock firmware.', 'empty')); return; }
+    const wrap = element('div', undefined, 'review-table-wrap'), table = element('table', undefined, 'review-table'), head = element('thead'), tr = element('tr');
+    for (const title of ['Layer / setting', 'Factory slot', 'From', 'To']) { const th = element('th', title); th.scope = 'col'; tr.append(th); } head.append(tr); table.append(head); const body = element('tbody');
+    for (const change of changes) { const row = element('tr'); const layer = layerById(change.layer); for (const value of [layer?.label || change.layer, `R${change.row} C${change.col} · #${change.index}`, change.from, change.to]) row.append(element('td', String(value))); body.append(row); }
+    for (const change of settings) { const row = element('tr'); for (const value of [change.label || change.id, 'Setting', change.from, change.to]) row.append(element('td', String(value))); body.append(row); }
+    table.append(body); wrap.append(table); container.append(wrap);
+  }
+  function renderDraft() {
+    const profile = canonicalProfile(), list = $('draft-changes'); list.replaceChildren();
+    const count = profile.changes.length;
+    for (const id of ['total-count', 'rail-count']) { $(id).textContent = String(count); $(id).classList.toggle('zero', !count); }
+    $('draft-revision').textContent = `Revision ${state.revision}`;
+    if (!count) { list.append(element('p', 'No overrides. Building now produces authenticated stock firmware.', 'empty')); return; }
+    for (const layer of state.model.layers) {
+      const changes = profile.changes.filter(change => change.layer === layer.id); if (!changes.length) continue;
+      const group = element('div', undefined, 'change-group'); group.append(element('h3', `${layer.label} · ${changes.length}`));
+      for (const change of changes) {
+        const factory = stockKey(change.layer, change.index), row = element('div', undefined, 'change-row'), desc = element('div', undefined, 'change-desc');
+        desc.append(element('span', factory.label), element('span', '→', 'arrow'), element('span', actionLabel(change), 'to'), element('br'), element('span', `slot ${change.index} · R${factory.row} C${factory.col}${ON_BOARD.has(change.index) ? '' : ' · off layout'}`, 'slot'));
+        const actions = element('div', undefined, 'change-actions'), show = element('button', 'Show', 'btn small ghost'), revert = element('button', 'Revert', 'btn small');
+        show.type = revert.type = 'button';
+        show.addEventListener('click', () => { state.layer = change.layer; if (!ON_BOARD.has(change.index)) state.layout = 'matrix'; state.index = change.index; renderTabs(); renderBoard(); renderSelected(); setView('configure'); });
+        revert.addEventListener('click', () => { setMapping(change.layer, change.index, factory); draftChanged(); });
+        actions.append(show, revert); row.append(desc, actions); group.append(row);
+      }
+      list.append(group);
+    }
+  }
+
+  /* ---------------- key tester ---------------- */
+  const TESTER_SOUND_STORAGE = 'oe915.tester.sound';
+  const TESTER_KEYS = [
+    // Row 0
+    {code: 'Escape', x: 0, y: 0, w: 1, win: 'Esc', mac: 'Esc', mod: true},
+    {code: 'F1', x: 1, y: 0, w: 1, win: 'F1', mac: 'F1', sub: '☀️-'},
+    {code: 'F2', x: 2, y: 0, w: 1, win: 'F2', mac: 'F2', sub: '☀️+'},
+    {code: 'F3', x: 3, y: 0, w: 1, win: 'F3', mac: 'F3', sub: 'App'},
+    {code: 'F4', x: 4, y: 0, w: 1, win: 'F4', mac: 'F4', sub: 'File'},
+    {code: 'F5', x: 5, y: 0, w: 1, win: 'F5', mac: 'F5', sub: 'Lit-'},
+    {code: 'F6', x: 6, y: 0, w: 1, win: 'F6', mac: 'F6', sub: 'Lit+'},
+    {code: 'F7', x: 7, y: 0, w: 1, win: 'F7', mac: 'F7', sub: '⏮'},
+    {code: 'F8', x: 8, y: 0, w: 1, win: 'F8', mac: 'F8', sub: '⏯'},
+    {code: 'F9', x: 9, y: 0, w: 1, win: 'F9', mac: 'F9', sub: '⏭'},
+    {code: 'F10', x: 10, y: 0, w: 1, win: 'F10', mac: 'F10', sub: '🔇'},
+    {code: 'F11', x: 11, y: 0, w: 1, win: 'F11', mac: 'F11', sub: '🔉'},
+    {code: 'F12', x: 12, y: 0, w: 1, win: 'F12', mac: 'F12', sub: '🔊'},
+    {code: 'PrintScreen', x: 13, y: 0, w: 1, win: 'PrtSc', mac: 'F13', mod: true},
+    {code: 'Insert', x: 14, y: 0, w: 1, win: 'Ins', mac: 'Ins', mod: true},
+    {code: 'Delete', x: 15, y: 0, w: 1, win: 'Del', mac: 'Del', mod: true},
+
+    // Row 1
+    {code: 'Backquote', x: 0, y: 1, w: 1, win: '`', winTop: '~', mac: '`', macTop: '~'},
+    {code: 'Digit1', x: 1, y: 1, w: 1, win: '1', winTop: '!', mac: '1', macTop: '!'},
+    {code: 'Digit2', x: 2, y: 1, w: 1, win: '2', winTop: '@', mac: '2', macTop: '@'},
+    {code: 'Digit3', x: 3, y: 1, w: 1, win: '3', winTop: '#', mac: '3', macTop: '#'},
+    {code: 'Digit4', x: 4, y: 1, w: 1, win: '4', winTop: '$', mac: '4', macTop: '$'},
+    {code: 'Digit5', x: 5, y: 1, w: 1, win: '5', winTop: '%', mac: '5', macTop: '%'},
+    {code: 'Digit6', x: 6, y: 1, w: 1, win: '6', winTop: '^', mac: '6', macTop: '^'},
+    {code: 'Digit7', x: 7, y: 1, w: 1, win: '7', winTop: '&', mac: '7', macTop: '&'},
+    {code: 'Digit8', x: 8, y: 1, w: 1, win: '8', winTop: '*', mac: '8', macTop: '*'},
+    {code: 'Digit9', x: 9, y: 1, w: 1, win: '9', winTop: '(', mac: '9', macTop: '('},
+    {code: 'Digit0', x: 10, y: 1, w: 1, win: '0', winTop: ')', mac: '0', macTop: ')'},
+    {code: 'Minus', x: 11, y: 1, w: 1, win: '-', winTop: '_', mac: '-', macTop: '_'},
+    {code: 'Equal', x: 12, y: 1, w: 1, win: '=', winTop: '+', mac: '=', macTop: '+'},
+    {code: 'Backspace', x: 13, y: 1, w: 2, win: 'Backspace', mac: 'Delete', mod: true},
+    {code: 'Home', x: 15, y: 1, w: 1, win: 'Home', mac: 'Home', mod: true},
+
+    // Row 2
+    {code: 'Tab', x: 0, y: 2, w: 1.5, win: 'Tab', mac: 'Tab', mod: true},
+    {code: 'KeyQ', x: 1.5, y: 2, w: 1, win: 'Q', mac: 'Q'},
+    {code: 'KeyW', x: 2.5, y: 2, w: 1, win: 'W', mac: 'W'},
+    {code: 'KeyE', x: 3.5, y: 2, w: 1, win: 'E', mac: 'E'},
+    {code: 'KeyR', x: 4.5, y: 2, w: 1, win: 'R', mac: 'R'},
+    {code: 'KeyT', x: 5.5, y: 2, w: 1, win: 'T', mac: 'T'},
+    {code: 'KeyY', x: 6.5, y: 2, w: 1, win: 'Y', mac: 'Y'},
+    {code: 'KeyU', x: 7.5, y: 2, w: 1, win: 'U', mac: 'U'},
+    {code: 'KeyI', x: 8.5, y: 2, w: 1, win: 'I', mac: 'I'},
+    {code: 'KeyO', x: 9.5, y: 2, w: 1, win: 'O', mac: 'O'},
+    {code: 'KeyP', x: 10.5, y: 2, w: 1, win: 'P', mac: 'P'},
+    {code: 'BracketLeft', x: 11.5, y: 2, w: 1, win: '[', winTop: '{', mac: '[', macTop: '{'},
+    {code: 'BracketRight', x: 12.5, y: 2, w: 1, win: ']', winTop: '}', mac: ']', macTop: '}'},
+    {code: 'Backslash', x: 13.5, y: 2, w: 1.5, win: '\\', winTop: '|', mac: '\\', macTop: '|'},
+    {code: 'End', x: 15, y: 2, w: 1, win: 'End', mac: 'End', mod: true},
+
+    // Row 3
+    {code: 'CapsLock', x: 0, y: 3, w: 1.75, win: 'Caps Lock', mac: 'Caps Lock', mod: true},
+    {code: 'KeyA', x: 1.75, y: 3, w: 1, win: 'A', mac: 'A'},
+    {code: 'KeyS', x: 2.75, y: 3, w: 1, win: 'S', mac: 'S'},
+    {code: 'KeyD', x: 3.75, y: 3, w: 1, win: 'D', mac: 'D'},
+    {code: 'KeyF', x: 4.75, y: 3, w: 1, win: 'F', mac: 'F'},
+    {code: 'KeyG', x: 5.75, y: 3, w: 1, win: 'G', mac: 'G'},
+    {code: 'KeyH', x: 6.75, y: 3, w: 1, win: 'H', mac: 'H'},
+    {code: 'KeyJ', x: 7.75, y: 3, w: 1, win: 'J', mac: 'J'},
+    {code: 'KeyK', x: 8.75, y: 3, w: 1, win: 'K', mac: 'K'},
+    {code: 'KeyL', x: 9.75, y: 3, w: 1, win: 'L', mac: 'L'},
+    {code: 'Semicolon', x: 10.75, y: 3, w: 1, win: ';', winTop: ':', mac: ';', macTop: ':'},
+    {code: 'Quote', x: 11.75, y: 3, w: 1, win: "'", winTop: '"', mac: "'", macTop: '"'},
+    {code: 'Enter', x: 12.75, y: 3, w: 2.25, win: 'Enter', mac: 'Return', mod: true},
+    {code: 'PageUp', x: 15, y: 3, w: 1, win: 'PgUp', mac: 'PgUp', mod: true},
+
+    // Row 4
+    {code: 'ShiftLeft', x: 0, y: 4, w: 2.25, win: 'Shift', mac: '⇧ Shift', mod: true},
+    {code: 'KeyZ', x: 2.25, y: 4, w: 1, win: 'Z', mac: 'Z'},
+    {code: 'KeyX', x: 3.25, y: 4, w: 1, win: 'X', mac: 'X'},
+    {code: 'KeyC', x: 4.25, y: 4, w: 1, win: 'C', mac: 'C'},
+    {code: 'KeyV', x: 5.25, y: 4, w: 1, win: 'V', mac: 'V'},
+    {code: 'KeyB', x: 6.25, y: 4, w: 1, win: 'B', mac: 'B'},
+    {code: 'KeyN', x: 7.25, y: 4, w: 1, win: 'N', mac: 'N'},
+    {code: 'KeyM', x: 8.25, y: 4, w: 1, win: 'M', mac: 'M'},
+    {code: 'Comma', x: 9.25, y: 4, w: 1, win: ',', winTop: '<', mac: ',', macTop: '<'},
+    {code: 'Period', x: 10.25, y: 4, w: 1, win: '.', winTop: '>', mac: '.', macTop: '>'},
+    {code: 'Slash', x: 11.25, y: 4, w: 1, win: '/', winTop: '?', mac: '/', macTop: '?'},
+    {code: 'ShiftRight', x: 12.25, y: 4, w: 1.75, win: 'Shift', mac: '⇧ Shift', mod: true},
+    {code: 'ArrowUp', x: 14, y: 4, w: 1, win: '↑', mac: '↑', mod: true},
+    {code: 'PageDown', x: 15, y: 4, w: 1, win: 'PgDn', mac: 'PgDn', mod: true},
+
+    // Row 5
+    {code: 'ControlLeft', x: 0, y: 5, w: 1.25, win: 'Ctrl', mac: '⌃ Ctrl', mod: true},
+    {code: 'MetaLeft', x: 1.25, y: 5, w: 1.25, win: 'Win', mac: '⌥ Opt', mod: true, slotIndex: 111},
+    {code: 'AltLeft', x: 2.5, y: 5, w: 1.25, win: 'Alt', mac: '⌘ Cmd', mod: true, slotIndex: 112},
+    {code: 'Space', x: 3.75, y: 5, w: 6.25, win: 'Space', mac: 'Space'},
+    {code: 'AltRight', x: 10, y: 5, w: 1, win: 'Alt', mac: '⌘ Cmd', mod: true, slotIndex: 117},
+    {code: 'Fn', x: 11, y: 5, w: 1, win: 'Fn', mac: 'Fn', mod: true, slotIndex: 118},
+    {code: 'ControlRight', x: 12, y: 5, w: 1, win: 'Ctrl', mac: '⌃ Ctrl', mod: true},
+    {code: 'ArrowLeft', x: 13, y: 5, w: 1, win: '←', mac: '←', mod: true},
+    {code: 'ArrowDown', x: 14, y: 5, w: 1, win: '↓', mac: '↓', mod: true},
+    {code: 'ArrowRight', x: 15, y: 5, w: 1, win: '→', mac: '→', mod: true},
+  ];
+
+  const testerState = {
+    os: 'win',
+    sound: false,
+    trapKeys: true,
+    testedKeys: new Set(),
+    activeKeys: new Set(),
+    keyCounts: new Map(),
+    keyPressTimes: new Map(),
+    totalPresses: 0,
+    lastKeyTime: null,
+  };
+
+  let audioCtx = null;
+  function playKeyClick(isDown) {
+    if (!testerState.sound) return;
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      if (!audioCtx) audioCtx = new AudioCtx();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      const freq = isDown ? 950 : 1350;
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now);
+      osc.frequency.exponentialRampToValueAtTime(120, now + 0.02);
+      gain.gain.setValueAtTime(0.06, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.022);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.025);
+    } catch { /* audio unavailable */ }
+  }
+
+  function findTesterKey(code) {
+    if (testerState.os === 'mac') {
+      if (code === 'AltLeft') return document.querySelector('.tester-key[data-slot="111"]') || document.querySelector(`.tester-key[data-code="${code}"]`);
+      if (code === 'MetaLeft') return document.querySelector('.tester-key[data-slot="112"]') || document.querySelector(`.tester-key[data-code="${code}"]`);
+      if (code === 'MetaRight' || code === 'AltRight') return document.querySelector('.tester-key[data-slot="117"]') || document.querySelector(`.tester-key[data-code="${code}"]`);
+    } else {
+      if (code === 'MetaLeft') return document.querySelector('.tester-key[data-slot="111"]') || document.querySelector(`.tester-key[data-code="${code}"]`);
+      if (code === 'AltLeft') return document.querySelector('.tester-key[data-slot="112"]') || document.querySelector(`.tester-key[data-code="${code}"]`);
+      if (code === 'AltRight') return document.querySelector('.tester-key[data-slot="117"]') || document.querySelector(`.tester-key[data-code="${code}"]`);
+    }
+    return document.querySelector(`.tester-key[data-code="${code}"]`);
+  }
+
+  function recordExtraKey(code, keyLabel, isDown) {
+    let chip = document.querySelector(`.tester-extra-chip[data-code="${code}"]`);
+    if (!chip) {
+      $('tester-extra-keys').hidden = false;
+      chip = element('span', undefined, 'tester-extra-chip');
+      chip.dataset.code = code;
+      chip.append(element('span', `${keyLabel} (${code})`, 'chip-label'));
+      const count = element('span', '1', 'chip-count');
+      chip.append(count);
+      $('tester-extra-list').append(chip);
+    }
+    const countEl = chip.querySelector('.chip-count');
+    if (countEl) countEl.textContent = String(testerState.keyCounts.get(code) || 1);
+    if (isDown) chip.classList.add('active');
+    else chip.classList.remove('active');
+  }
+
+  function updateModChips(e) {
+    for (const chip of document.querySelectorAll('.mod-chip[data-mod]')) {
+      const mod = chip.dataset.mod;
+      chip.classList.toggle('active', testerState.activeKeys.has(mod));
+    }
+    if (e && typeof e.getModifierState === 'function') {
+      const caps = e.getModifierState('CapsLock');
+      const num = e.getModifierState('NumLock');
+      const scroll = e.getModifierState('ScrollLock');
+      document.querySelector('.mod-chip[data-lock="CapsLock"]')?.classList.toggle('locked', caps);
+      document.querySelector('.mod-chip[data-lock="NumLock"]')?.classList.toggle('locked', num);
+      document.querySelector('.mod-chip[data-lock="ScrollLock"]')?.classList.toggle('locked', scroll);
+    }
+  }
+
+  function addLogEntry(e, isDown, deltaOrHold, isChatter) {
+    $('tester-log-empty').hidden = true;
+    $('tester-log-table').hidden = false;
+
+    const tr = document.createElement('tr');
+    const stateTd = document.createElement('td');
+    stateTd.append(element('span', isDown ? '↓ DOWN' : '↑ UP', isDown ? 'badge-down' : 'badge-up'));
+
+    const keyTd = element('td', e.key === ' ' ? 'Space' : e.key);
+    const codeTd = element('td', e.code, 'mono');
+    const deltaTd = element('td', deltaOrHold !== null ? (isDown ? `+${deltaOrHold}ms` : deltaOrHold) : '—', 'mono');
+
+    const mods = [];
+    if (e.ctrlKey) mods.push('Ctrl');
+    if (e.shiftKey) mods.push('Shift');
+    if (e.altKey) mods.push('Alt');
+    if (e.metaKey) mods.push('Meta');
+    const modsTd = element('td', mods.length ? mods.join('+') : 'None', 'muted');
+
+    const notesTd = document.createElement('td');
+    if (isChatter) {
+      notesTd.append(element('span', '⚠️ Chatter', 'badge-chatter'));
+    } else if (e.repeat) {
+      notesTd.append(element('span', 'Repeat', 'badge-repeat'));
+    }
+
+    tr.append(stateTd, keyTd, codeTd, deltaTd, modsTd, notesTd);
+    const body = $('tester-log-body');
+    body.prepend(tr);
+    if (body.children.length > 80) body.lastElementChild.remove();
+  }
+
+  function updateTesterStats() {
+    let testedOnBoard = 0;
+    for (const key of TESTER_KEYS) {
+      if (testerState.testedKeys.has(key.code)) {
+        testedOnBoard++;
+      } else if (key.slotIndex === 111 && (testerState.testedKeys.has('MetaLeft') || (testerState.os === 'mac' && testerState.testedKeys.has('AltLeft')))) {
+        testedOnBoard++;
+      } else if (key.slotIndex === 112 && (testerState.testedKeys.has('AltLeft') || (testerState.os === 'mac' && testerState.testedKeys.has('MetaLeft')))) {
+        testedOnBoard++;
+      } else if (key.slotIndex === 117 && (testerState.testedKeys.has('AltRight') || (testerState.os === 'mac' && testerState.testedKeys.has('MetaRight')))) {
+        testedOnBoard++;
+      }
+    }
+    $('tester-count').textContent = String(testedOnBoard);
+    $('tester-pct').textContent = `${Math.round(testedOnBoard / 84 * 100)}%`;
+    $('tester-total-presses').textContent = String(testerState.totalPresses);
+  }
+
+  function inspectTesterKey(key) {
+    const os = testerState.os;
+    const main = os === 'mac' ? key.mac : key.win;
+    const top = os === 'mac' ? (key.macTop || '') : (key.winTop || '');
+    const label = top ? `${top} ${main}` : main;
+
+    $('tester-hero-code').textContent = key.code;
+    $('tester-hero-sub').textContent = `${label} · Flow84 key (${key.code})`;
+    $('tester-val-key').textContent = main;
+    $('tester-val-code').textContent = key.code;
+    $('tester-val-keycode').textContent = key.code === 'Space' ? '32' : key.code === 'Enter' ? '13' : key.code === 'Tab' ? '9' : '—';
+    $('tester-val-location').textContent = key.code.endsWith('Right') ? '2 (Right)' : key.code.endsWith('Left') ? '1 (Left)' : '0 (Standard)';
+    $('tester-val-interval').textContent = 'Direct click';
+    $('tester-val-presses').textContent = String(testerState.keyCounts.get(key.code) || 0);
+
+    const btn = findTesterKey(key.code);
+    if (btn) {
+      btn.classList.add('active');
+      setTimeout(() => btn.classList.remove('active'), 150);
+    }
+    playKeyClick(true);
+  }
+
+  function handleKeyDown(e) {
+    if (state.view !== 'tester') return;
+
+    if (e.altKey && e.code === 'KeyR') {
+      e.preventDefault();
+      resetTester();
+      return;
+    }
+
+    const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName);
+    if (testerState.trapKeys && !isInput) {
+      // Prevent browser from acting on hotkeys during key testing (Ctrl+S, Ctrl+P, Ctrl+F, Tab, Alt, etc.)
+      // Retain Ctrl+W / Cmd+W (close tab) and Ctrl+Shift+I / F12 (devtools) as emergency exits.
+      const isDevTools = (e.ctrlKey && e.shiftKey && e.code === 'KeyI') || e.code === 'F12';
+      const isCloseTab = (e.ctrlKey || e.metaKey) && e.code === 'KeyW';
+      if (!isDevTools && !isCloseTab) {
+        e.preventDefault();
+      }
+    }
+
+    const now = performance.now();
+    const delta = testerState.lastKeyTime !== null ? Math.round(now - testerState.lastKeyTime) : null;
+    testerState.lastKeyTime = now;
+
+    const prevDown = testerState.keyPressTimes.get(e.code);
+    const keyDelta = prevDown !== undefined ? Math.round(now - prevDown) : null;
+    const isChatter = !e.repeat && keyDelta !== null && keyDelta < 25;
+    testerState.keyPressTimes.set(e.code, now);
+
+    testerState.totalPresses++;
+    const count = (testerState.keyCounts.get(e.code) || 0) + 1;
+    testerState.keyCounts.set(e.code, count);
+    testerState.testedKeys.add(e.code);
+    testerState.activeKeys.add(e.code);
+
+    if (!e.repeat) playKeyClick(true);
+
+    const boardKey = findTesterKey(e.code);
+    if (boardKey) {
+      boardKey.classList.add('active', 'tested');
+      let badge = boardKey.querySelector('.hit-badge');
+      if (count > 1) {
+        if (!badge) {
+          badge = element('span', String(count), 'hit-badge');
+          boardKey.querySelector('.cap').append(badge);
+        } else {
+          badge.textContent = String(count);
+        }
+      }
+    } else {
+      recordExtraKey(e.code, e.key === ' ' ? 'Space' : e.key, true);
+    }
+
+    $('tester-hero-code').textContent = e.code;
+    $('tester-hero-sub').textContent = `${e.key === ' ' ? 'Space' : e.key} · Location: ${['Standard', 'Left', 'Right', 'Numpad'][e.location] || 'Standard'}`;
+    $('tester-val-key').textContent = e.key === ' ' ? 'Space' : e.key;
+    $('tester-val-code').textContent = e.code;
+    $('tester-val-keycode').textContent = String(e.keyCode || e.which || '—');
+    $('tester-val-location').textContent = `${e.location} (${['Standard', 'Left', 'Right', 'Numpad'][e.location] || 'Standard'})`;
+    $('tester-val-interval').textContent = delta !== null ? `+${delta} ms` : 'First key';
+    $('tester-val-presses').textContent = String(count);
+
+    updateModChips(e);
+    addLogEntry(e, true, delta, isChatter);
+    updateTesterStats();
+  }
+
+  function handleKeyUp(e) {
+    if (state.view !== 'tester') return;
+    testerState.activeKeys.delete(e.code);
+
+    const now = performance.now();
+    const prevDown = testerState.keyPressTimes.get(e.code);
+    const holdDuration = prevDown !== undefined ? Math.round(now - prevDown) : null;
+
+    if (!e.repeat) playKeyClick(false);
+
+    const boardKey = findTesterKey(e.code);
+    if (boardKey) {
+      boardKey.classList.remove('active');
+    } else {
+      recordExtraKey(e.code, e.key === ' ' ? 'Space' : e.key, false);
+    }
+
+    updateModChips(e);
+    addLogEntry(e, false, holdDuration !== null ? `${holdDuration}ms hold` : null, false);
+  }
+
+  function resetTester() {
+    testerState.testedKeys.clear();
+    testerState.activeKeys.clear();
+    testerState.keyCounts.clear();
+    testerState.keyPressTimes.clear();
+    testerState.totalPresses = 0;
+    testerState.lastKeyTime = null;
+
+    for (const key of document.querySelectorAll('.tester-key')) {
+      key.classList.remove('active', 'tested');
+      key.querySelector('.hit-badge')?.remove();
+    }
+
+    $('tester-extra-list').replaceChildren();
+    $('tester-extra-keys').hidden = true;
+
+    $('tester-count').textContent = '0';
+    $('tester-pct').textContent = '0%';
+    $('tester-total-presses').textContent = '0';
+
+    $('tester-hero-code').textContent = '—';
+    $('tester-hero-sub').textContent = 'Press any key to test';
+    $('tester-val-key').textContent = '—';
+    $('tester-val-code').textContent = '—';
+    $('tester-val-keycode').textContent = '—';
+    $('tester-val-location').textContent = '—';
+    $('tester-val-interval').textContent = '—';
+    $('tester-val-presses').textContent = '—';
+
+    for (const chip of document.querySelectorAll('.mod-chip')) {
+      chip.classList.remove('active', 'locked');
+    }
+
+    $('tester-log-body').replaceChildren();
+    $('tester-log-empty').hidden = false;
+    $('tester-log-table').hidden = true;
+  }
+
+  function renderTesterBoard() {
+    const plate = $('tester-plate');
+    if (!plate) return;
+    plate.replaceChildren();
+    const os = testerState.os;
+
+    for (const key of TESTER_KEYS) {
+      const button = element('button', undefined, `tester-key${key.mod ? ' mod' : ''}`);
+      button.type = 'button';
+      button.dataset.code = key.code;
+      if (key.slotIndex) button.dataset.slot = String(key.slotIndex);
+
+      Object.assign(button.style, {
+        left: `${key.x / 16 * 100}%`,
+        top: `${key.y / 6 * 100}%`,
+        width: `${key.w / 16 * 100}%`,
+        height: `${100 / 6}%`
+      });
+
+      const cap = element('span', undefined, 'cap');
+      const topLegend = os === 'mac' ? (key.macTop || '') : (key.winTop || '');
+      const mainLegend = os === 'mac' ? key.mac : key.win;
+
+      if (topLegend) cap.append(element('span', topLegend, 'leg-top'));
+      cap.append(element('span', mainLegend, `leg ${sizeClass(mainLegend)}`.trim()));
+      if (key.sub) cap.append(element('span', key.sub, 'sub'));
+
+      if (testerState.activeKeys.has(key.code)) button.classList.add('active');
+      if (testerState.testedKeys.has(key.code)) {
+        button.classList.add('tested');
+        const count = testerState.keyCounts.get(key.code) || 0;
+        if (count > 1) {
+          cap.append(element('span', String(count), 'hit-badge'));
+        }
+      }
+
+      button.append(cap);
+      button.setAttribute('aria-label', `${mainLegend} key, code ${key.code}`);
+      button.title = `${mainLegend} · ${key.code}${key.sub ? ` (${key.sub})` : ''}`;
+
+      button.addEventListener('pointerdown', () => inspectTesterKey(key));
+
+      plate.append(button);
+    }
+  }
+
+  function updateSoundBtn() {
+    $('tester-sound').setAttribute('aria-pressed', String(testerState.sound));
+    $('tester-sound-label').textContent = testerState.sound ? 'Sound: On' : 'Sound: Off';
+    if (testerState.sound) {
+      $('tester-sound').classList.add('primary');
+    } else {
+      $('tester-sound').classList.remove('primary');
+    }
+  }
+
+  function updateLockBtn() {
+    const active = Boolean(document.fullscreenElement);
+    $('tester-lock-os').setAttribute('aria-pressed', String(active));
+    $('tester-lock-label').textContent = active ? 'OS keys locked' : 'Lock OS keys';
+    if (active) {
+      $('tester-lock-os').classList.add('primary');
+    } else {
+      $('tester-lock-os').classList.remove('primary');
+    }
+  }
+
+  async function toggleKeyboardLock() {
+    if (!document.fullscreenElement) {
+      try {
+        await document.documentElement.requestFullscreen();
+      } catch (err) {
+        showError('Fullscreen request was declined: ' + err.message);
+        return;
+      }
+      if ('keyboard' in navigator && typeof navigator.keyboard.lock === 'function') {
+        try {
+          await navigator.keyboard.lock();
+          testerState.keyboardLocked = true;
+        } catch (err) {
+          console.warn('Keyboard Lock API failed:', err);
+        }
+      }
+    } else {
+      if ('keyboard' in navigator && typeof navigator.keyboard.unlock === 'function') {
+        try { navigator.keyboard.unlock(); } catch {}
+      }
+      try {
+        await document.exitFullscreen();
+      } catch {}
+      testerState.keyboardLocked = false;
+    }
+    updateLockBtn();
+  }
+
+  function initTester() {
+    let savedSound = null;
+    try { savedSound = localStorage.getItem(TESTER_SOUND_STORAGE); } catch { /* ignore */ }
+    if (savedSound !== null) {
+      testerState.sound = savedSound === 'true';
+    }
+    updateSoundBtn();
+
+    $('tester-sound').addEventListener('click', () => {
+      testerState.sound = !testerState.sound;
+      try { localStorage.setItem(TESTER_SOUND_STORAGE, String(testerState.sound)); } catch { /* ignore */ }
+      updateSoundBtn();
+      if (testerState.sound) playKeyClick(true);
+    });
+
+    $('tester-os-win').addEventListener('click', () => {
+      testerState.os = 'win';
+      $('tester-os-win').setAttribute('aria-pressed', 'true');
+      $('tester-os-mac').setAttribute('aria-pressed', 'false');
+      renderTesterBoard();
+      updateTesterStats();
+    });
+
+    $('tester-os-mac').addEventListener('click', () => {
+      testerState.os = 'mac';
+      $('tester-os-mac').setAttribute('aria-pressed', 'true');
+      $('tester-os-win').setAttribute('aria-pressed', 'false');
+      renderTesterBoard();
+      updateTesterStats();
+    });
+
+    $('tester-trap-keys').addEventListener('change', () => {
+      testerState.trapKeys = $('tester-trap-keys').checked;
+    });
+
+    $('tester-lock-os').addEventListener('click', toggleKeyboardLock);
+    document.addEventListener('fullscreenchange', () => {
+      const isFs = Boolean(document.fullscreenElement);
+      if (!isFs) {
+        if ('keyboard' in navigator && typeof navigator.keyboard.unlock === 'function') {
+          try { navigator.keyboard.unlock(); } catch {}
+        }
+        testerState.keyboardLocked = false;
+      } else {
+        if ('keyboard' in navigator && typeof navigator.keyboard.lock === 'function') {
+          navigator.keyboard.lock().catch(() => {});
+          testerState.keyboardLocked = true;
+        }
+      }
+      updateLockBtn();
+    });
+
+    $('tester-reset').addEventListener('click', resetTester);
+    $('tester-clear-log').addEventListener('click', () => {
+      $('tester-log-body').replaceChildren();
+      $('tester-log-empty').hidden = false;
+      $('tester-log-table').hidden = true;
+    });
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    renderTesterBoard();
+  }
+
+  /* ---------------- WebHID devices ---------------- */
+  const HID = window.isSecureContext && navigator.hid ? navigator.hid : null;
+  const HID_FILTERS = [
+    {vendorId: OE915.NORMAL_IDS[0], productId: OE915.NORMAL_IDS[1], usagePage: OE915.VENDOR_USAGE_PAGE},
+    {vendorId: OE915.BOOT_IDS[0], productId: OE915.BOOT_IDS[1], usagePage: OE915.VENDOR_USAGE_PAGE},
+  ];
+  const deviceIds = new WeakMap(); let nextDeviceId = 1;
+  const deviceId = device => { if (!deviceIds.has(device)) deviceIds.set(device, String(nextDeviceId++)); return deviceIds.get(device); };
+  const deviceName = entry => entry.info.mode === 'boot' ? 'OE915 bootloader (update mode)' : (entry.device.productName || 'Flow84');
+
+  /* Report transport for one opened HIDDevice; outgoing reports pass the same guards as the Linux flasher. */
+  class WebHidTransport {
+    constructor(device, mode) {
+      this.device = device; this.mode = mode; this.queue = []; this.wake = null; this.gone = false;
+      this.onReport = event => {
+        const data = new Uint8Array(event.data.buffer, event.data.byteOffset, event.data.byteLength), report = new Uint8Array(data.length + 1);
+        report[0] = event.reportId; report.set(data, 1); this.queue.push(report); this.notify();
+      };
+      this.onDisconnect = event => { if (event.device === device) { this.gone = true; this.notify(); } };
+      device.addEventListener('inputreport', this.onReport); HID.addEventListener('disconnect', this.onDisconnect);
+    }
+    static async open(device, mode) { if (!device.opened) await device.open(); return new WebHidTransport(device, mode); }
+    notify() { const wake = this.wake; this.wake = null; if (wake) wake(); }
+    async send(report) { OE915.checkOutgoing(this.mode, report); if (this.gone) throw new OE915.FlashError('device disconnected'); await this.device.sendReport(report[0], report.subarray(1)); }
+    async receive(deadline) {
+      while (!this.queue.length) {
+        if (this.gone) throw new OE915.FlashError('bootloader disconnected');
+        const remaining = deadline - Date.now();
+        if (remaining <= 0) throw new OE915.FlashError('timed out waiting for bootloader response');
+        await new Promise(resolve => { this.wake = resolve; setTimeout(resolve, remaining); });
+      }
+      return this.queue.shift();
+    }
+    async close() {
+      this.device.removeEventListener('inputreport', this.onReport); HID.removeEventListener('disconnect', this.onDisconnect);
+      if (this.device.opened) { try { await this.device.close(); } catch { /* already gone after re-enumeration */ } }
+    }
+  }
+
+  async function grantedDevices() { return (await HID.getDevices()).map(device => ({device, id: deviceId(device), info: OE915.classifyDevice(device)})).filter(entry => entry.info.mode); }
+  async function refreshDevices() {
+    if (!HID || !state.model) return;
+    try { state.devices = await grantedDevices(); showError('', 'status-error'); }
+    catch (error) { state.devices = []; showError(`WebHID device list failed: ${error.message}`, 'status-error'); }
+    const select = $('device-select'), previous = select.value; select.replaceChildren();
+    const prompt = element('option', state.devices.length ? 'Choose the keyboard to write' : 'Connect a keyboard first'); prompt.value = ''; select.append(prompt);
+    for (const entry of state.devices) {
+      const option = element('option', `${deviceName(entry)}${entry.info.ok ? '' : ` · rejected: ${entry.info.reason}`}`);
+      option.value = entry.id; option.disabled = !entry.info.ok; select.append(option);
+    }
+    if (state.devices.some(entry => entry.id === previous && entry.info.ok)) select.value = previous;
+    const ok = state.devices.filter(entry => entry.info.ok);
+    const pill = $('connection-state');
+    if (!ok.length) { pill.textContent = 'Connect keyboard'; pill.className = 'pill'; }
+    else if (ok.some(entry => entry.info.mode === 'boot')) { pill.textContent = 'Bootloader (update mode)'; pill.className = 'pill ready'; }
+    else { pill.textContent = 'Flow84 connected'; pill.className = 'pill ready'; }
+    describeDevice(); updateControls();
+  }
+  function selectedDevice() { return state.devices.find(entry => entry.id === $('device-select').value && entry.info.ok); }
+  function describeDevice() {
+    const entry = selectedDevice();
+    if (!HID) { $('device-description').textContent = 'WebHID unavailable in this browser.'; return; }
+    if (!entry) { $('device-description').textContent = state.devices.length ? 'Select the keyboard you intend to write. Nothing is selected automatically.' : 'No Flow84 granted to this page yet. Plug in the USB cable (mode switch ON), then Connect…'; return; }
+    $('device-description').textContent = `${deviceName(entry)} · ${entry.info.mode === 'boot' ? '3554:f800, bootloader' : '05ac:024f, normal mode'} · identity and vendor report layout verified`;
+  }
+  async function connectDevice() {
+    if (!HID) return;
+    const errorBox = state.view === 'flash' ? 'status-error' : 'global-error';
+    showError('', errorBox);
+    let chosen;
+    try { chosen = await HID.requestDevice({filters: HID_FILTERS}); }
+    catch (error) { showError(`Device chooser failed: ${error.message}`, errorBox); return; }
+    await refreshDevices();
+    const entry = chosen.length ? state.devices.find(item => item.device === chosen[0]) : null;
+    if (entry?.info.ok) $('device-select').value = entry.id;
+    else if (entry) showError(`${deviceName(entry)} was rejected: ${entry.info.reason}`, errorBox);
+    describeDevice(); updateControls();
+  }
+  async function findGranted(mode) {
+    const matches = (await grantedDevices()).filter(entry => entry.info.mode === mode);
+    if (matches.length > 1) throw new OE915.FlashError(`more than one ${mode === 'boot' ? 'bootloader' : 'Flow84'} is connected; disconnect the others`);
+    if (matches[0] && !matches[0].info.ok) throw new OE915.FlashError(`${mode} device identity check failed: ${matches[0].info.reason}`);
+    return matches[0] || null;
+  }
+  /* After update entry the keyboard re-enumerates as 3554:f800. That device has no USB serial number, so Chrome's grant
+     lasts one connection and a new grant needs a user gesture. While the Confirm click's transient activation (5 s in
+     desktop Chromium) is live, open the chooser at once; the bootloader appears in it after re-enumerating. If the
+     activation expired or the chooser was dismissed, fall back to the Connect bootloader button. */
+  function waitForBootloader(emit) {
+    emit('Waiting for the bootloader (3554:f800)…');
+    return new Promise((resolve, reject) => {
+      let done = false, choosing = false;
+      const finish = (settle, value) => { if (done) return; done = true; clearInterval(timer); clearTimeout(promptTimer); state.bootWaiter = null; $('boot-prompt').hidden = true; settle(value); };
+      const check = async () => { try { const entry = await findGranted('boot'); if (entry) finish(resolve, entry.device); } catch (error) { finish(reject, error); } };
+      const showPrompt = () => { if (done || choosing) return; $('boot-prompt').hidden = false; emit('The bootloader is not yet accessible to this page. Click “Connect bootloader” and choose it in Chrome’s device chooser.'); };
+      const choose = () => {
+        if (choosing) return;
+        choosing = true; $('boot-prompt').hidden = true;
+        HID.requestDevice({filters: [HID_FILTERS[1]]}).then(check, error => emit(`Device chooser failed: ${error.message}`)).finally(() => { choosing = false; showPrompt(); });
+      };
+      const timer = setInterval(check, 250);
+      const promptTimer = setTimeout(showPrompt, 3000);
+      state.bootWaiter = {
+        choose,
+        stop() { finish(reject, new OE915.FlashError('stopped while waiting for the bootloader; the keyboard may be in update mode')); },
+      };
+      check().then(() => {
+        if (done || !navigator.userActivation?.isActive) return;
+        emit('Chrome’s device chooser opened automatically. Select the OE915 bootloader (3554:f800) when it appears, then click Connect.');
+        choose();
+      });
+    });
+  }
+  async function waitForNormal(timeoutMs) {
+    const end = Date.now() + timeoutMs;
+    while (Date.now() < end) { const entry = await findGranted('normal').catch(() => null); if (entry) return entry; await new Promise(resolve => setTimeout(resolve, 250)); }
+    return null;
+  }
+  function renderJob() {
+    const job = state.job;
+    $('job-badge').textContent = job ? `${job.kind === 'restore' ? 'Stock restore' : 'Firmware flash'} · ${job.state}` : 'No write job';
+    $('job-badge').className = `pill${job?.state === 'success' ? ' ready' : job?.state === 'error' ? ' error' : ' plain'}`;
+    if (!job) return;
+    const log = $('job-log'), atBottom = log.scrollTop + log.clientHeight >= log.scrollHeight - 30;
+    log.textContent = [`${job.kind} · ${job.state}`, `Firmware SHA-256: ${job.sha256}`, ...job.logs, ...(job.error ? [`Error: ${job.error}`] : [])].join('\n');
+    if (atBottom) log.scrollTop = log.scrollHeight;
+  }
+  function setProgress(fraction) { $('progress').hidden = false; $('progress-bar').style.width = `${Math.round(fraction * 1000) / 10}%`; }
+  async function runWrite(kind, entry, image, sha256) {
+    const job = state.job = {kind, state: 'running', sha256, logs: [], error: null};
+    const emit = line => { job.logs.push(line); renderJob(); };
+    let transport = null; setProgress(0); renderJob(); updateControls();
+    try {
+      const stock = state.firmware.isStock(image), reports = state.firmware.reportsFor(image);
+      emit(stock ? 'Selected image: unchanged stock v2.52.' : 'Selected image: authenticated keymap; one call patched so Win/Mac switches keep it.');
+      let boot = entry.info.mode === 'boot' ? entry.device : null;
+      if (!boot) {
+        transport = await WebHidTransport.open(entry.device, 'normal');
+        emit(`Sending the known update-entry command to ${deviceName(entry)}.`);
+        try { await transport.send(state.firmware.resetCommand()); }
+        catch (error) { emit(`Update-entry write reported: ${error.message}. Checking whether the keyboard entered update mode.`); }
+        await transport.close(); transport = null;
+        boot = await waitForBootloader(emit);
+      }
+      const bootInfo = OE915.classifyDevice(boot);
+      if (!bootInfo.ok || bootInfo.mode !== 'boot') throw new OE915.FlashError(`bootloader identity check failed: ${bootInfo.reason}`);
+      emit('Bootloader identity verified: 3554:f800 with the exact vendor report layout.');
+      transport = await WebHidTransport.open(boot, 'boot');
+      await OE915.upload(transport, reports, {emit, progress: (index, count) => setProgress(index / count)});
+      await transport.close(); transport = null;
+      const normal = await waitForNormal(20000);
+      emit(normal ? `RETURNED: ${deviceName(normal)}; normal vendor interface matches stock.`
+        : 'Normal keyboard return was not visible to this page (Chrome did not re-grant it). Check that the keyboard types normally.');
+      emit(stock ? 'Stock firmware installed; no remapping or experimental code.' : 'Remapped keymap installed; Win/Mac switches reload the flashed keymap.');
+      job.state = 'success';
+    } catch (error) {
+      job.state = 'error'; job.error = error.message;
+      emit(`STOPPED: ${error.message}`);
+      emit('If the keyboard remains in update mode, connect the bootloader and use Restore stock. Keep Lofree’s original updater available.');
+    } finally {
+      if (transport) await transport.close();
+      $('boot-prompt').hidden = true; renderJob(); await refreshDevices(); updateControls();
+    }
+  }
+
+  /* ---------------- build / review / flash ---------------- */
+  function writeAvailable() { return Boolean(HID && selectedDevice() && state.job?.state !== 'running' && !state.requesting); }
+  function setStep(id, done, active) { $(id).classList.toggle('done', done); $(id).classList.toggle('active', active && !done); }
+  function updateControls() {
+    if (!state.model) return;
+    const available = writeAvailable(), reviewed = Boolean(state.build && state.build.revision === state.revision), entry = selectedDevice();
+    $('build').disabled = state.building; $('build').textContent = state.building ? 'Building and validating…' : 'Preview / Build firmware';
+    $('download-firmware').disabled = !reviewed; $('flash').disabled = !reviewed || !$('review-ack').checked || !available; $('restore-stock').disabled = !available;
+    $('connect-device').disabled = $('connection-state').disabled = !HID || state.job?.state === 'running';
+    $('forget-stock').disabled = state.job?.state === 'running';
+    let readiness;
+    if (!HID) readiness = 'This browser has no WebHID. Download the firmware and flash it with oe915_linux.py instead.';
+    else if (state.job?.state === 'running' || state.requesting) readiness = 'A firmware write is active. Keep this tab open and the cable connected until it finishes.';
+    else if (!entry) readiness = 'Connect the keyboard and select it before flashing.';
+    else if (!reviewed) readiness = 'Preview / Build the current draft before flashing.';
+    else if (!$('review-ack').checked) readiness = 'Review the digest and changes, then acknowledge this exact build.';
+    else readiness = `Ready for explicit confirmation on ${deviceName(entry)}. No write has started.`;
+    $('flash-readiness').textContent = readiness;
+    setStep('step-build', reviewed, !reviewed);
+    setStep('step-review', reviewed && $('review-ack').checked, reviewed);
+    setStep('step-flash', state.job?.kind === 'flash' && state.job.state === 'success' && state.job.sha256 === state.build?.sha256, reviewed && $('review-ack').checked);
+    $('confirm-write').disabled = !$('confirm-ack').checked || !available || (state.confirmation?.kind === 'flash' && (!reviewed || !$('review-ack').checked || state.confirmation.sha256 !== state.build.sha256));
+    $('confirm-cancel').disabled = state.requesting;
+  }
+  async function previewBuild() {
+    showError(''); state.building = true; invalidateBuild(); const revision = state.revision, profile = canonicalProfile(); updateControls();
+    $('build-state').textContent = 'Building from authenticated stock and checking keymap/code boundaries…';
+    try {
+      const review = await state.firmware.describe(profile);
+      if (revision !== state.revision) { $('build-state').textContent = 'Draft changed during the build. Preview / Build the current draft again.'; return; }
+      if (review.code_patches.length !== (review.changes.length ? 1 : 0)) throw new Error('The builder produced unexpected executable changes. This build cannot be used.');
+      state.build = {...review, revision}; $('build-review').hidden = false; $('build-digest').textContent = review.sha256;
+      $('build-size').textContent = `${review.size.toLocaleString()} bytes · ${review.changed_payload_bytes.toLocaleString()} changed payload bytes`;
+      $('build-code').textContent = review.code_patches.length ? review.code_patches.map(patch => `${patch.address}: ${patch.from} → ${patch.to}`).join('\n') : 'Unchanged · stock firmware';
+      appendReview($('build-changes'), review.changes, review.settings_changes); $('build-state').className = 'build-state reviewed'; $('build-state').textContent = 'Build complete. Review this exact firmware digest and changes before choosing Flash.';
+    } catch (error) { showError(error.message); $('build-state').className = 'build-state'; $('build-state').textContent = 'Build failed. No firmware write was made.'; state.build = null; }
+    finally { state.building = false; updateControls(); }
+  }
+  function downloadBlob(blob, filename) { const url = URL.createObjectURL(blob), link = element('a'); link.href = url; link.download = filename; document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
+  function downloadFirmware() {
+    if (!state.build) return;
+    downloadBlob(new Blob([state.build.image], {type: 'application/octet-stream'}), state.build.code_patches.length ? 'OE915-remapped-v2.52.bin' : 'OE915-stock-v2.52.bin');
+  }
+  function openConfirmation(kind) {
+    if (!writeAvailable()) return;
+    const entry = selectedDevice(); if (kind === 'flash' && (!state.build || !$('review-ack').checked)) return;
+    state.confirmation = {kind, deviceId: entry.id, sha256: kind === 'flash' ? state.build.sha256 : state.model.base_sha256, revision: state.revision}; $('confirm-ack').checked = false; showError('', 'confirm-error');
+    $('confirm-title').textContent = kind === 'flash' ? 'Flash the reviewed firmware?' : 'Restore authenticated stock firmware?';
+    $('confirm-description').textContent = kind === 'flash' ? 'This writes the reviewed keymap firmware build. The connected keyboard’s existing active configuration has not been read.' : 'This replaces firmware with the authenticated original stock image, not the browser draft. Your draft remains saved for later. Firmware restoration is not a guaranteed EEPROM/settings rollback.';
+    const details = $('confirm-details'); details.replaceChildren();
+    details.append(element('div', `Device: ${deviceName(entry)} · ${entry.info.mode === 'boot' ? '3554:f800' : '05ac:024f'}`)); details.append(element('div', `Firmware SHA-256: ${state.confirmation.sha256}`, 'digest'));
+    if (kind === 'flash') details.append(element('div', `${state.build.changes.length} mapping changes · ${state.build.code_patches.length ? 'Win/Mac keymap-load call retargeted' : 'executable instructions unchanged'}`));
+    details.append(element('div', entry.info.mode === 'boot' ? 'Already in bootloader mode: upload starts immediately.' : 'The keyboard will restart into update mode and Chrome’s device chooser opens automatically: pick the OE915 bootloader (3554:f800) when it appears.'));
+    $('confirm-write').textContent = kind === 'flash' ? 'Confirm flash' : 'Confirm stock restore'; $('write-confirm').showModal(); updateControls();
+  }
+  async function confirmWrite() {
+    const confirmation = state.confirmation, entry = selectedDevice();
+    if (!confirmation || !$('confirm-ack').checked || !writeAvailable()) return;
+    if (!entry || entry.id !== confirmation.deviceId) { showError('The selected keyboard changed. Cancel and review a fresh confirmation.', 'confirm-error'); return; }
+    if (confirmation.kind === 'flash' && (!state.build || confirmation.revision !== state.revision || confirmation.sha256 !== state.build.sha256)) return;
+    state.requesting = true; updateControls(); showError(''); showError('', 'confirm-error');
+    let image;
+    try {
+      if (confirmation.kind === 'flash') {
+        const review = await state.firmware.describe(state.build.profile);
+        if (review.sha256 !== confirmation.sha256) throw new Error('draft changed after preview; build and review it again');
+        image = review.image;
+      } else image = state.firmware.build(blankProfile());
+    } catch (error) { showError(error.message, 'confirm-error'); state.requesting = false; updateControls(); return; }
+    $('write-confirm').close(); state.confirmation = null; state.requesting = false;
+    await runWrite(confirmation.kind, entry, image, confirmation.sha256);
+  }
+  async function importProfile(file) {
+    if (!file) return;
+    try {
+      if (file.size > 1024 * 1024) throw new Error('Profile file is too large (maximum 1 MiB).');
+      let input; try { input = JSON.parse(await file.text()); } catch { throw new Error('Profile file is not valid JSON.'); }
+      const profile = normalizeProfile(input);
+      if (!window.confirm('Replace this browser draft with the imported profile? This does not write firmware.')) return;
+      state.profile = profile; showError(''); draftChanged();
+    } catch (error) { showError(`Profile import failed: ${error.message}`); }
+    finally { $('profile-file').value = ''; }
+  }
+  let eventsBound = false;
+  function bindEvents() {
+    if (eventsBound) return;
+    eventsBound = true;
+    for (const button of document.querySelectorAll('[data-view]')) button.addEventListener('click', () => setView(button.dataset.view));
+    $('goto-flash').addEventListener('click', () => setView('flash'));
+    $('view-flow84').addEventListener('click', () => setLayout('flow84')); $('view-matrix').addEventListener('click', () => setLayout('matrix'));
+    $('action-search').addEventListener('input', renderPicker);
+    $('combo-key').addEventListener('change', renderCombo);
+    $('apply-combo').addEventListener('click', () => { const action = comboAction(); if (!action) { showError('Choose a supported key and at least one left modifier for the combination.'); return; } assign(action); });
+    $('apply-both-os').addEventListener('change', renderSelected);
+    $('reset-selected').addEventListener('click', () => { const layers = [state.layer]; if ($('apply-both-os').checked) layers.push(OS_PAIR[state.layer]); for (const layer of layers) setMapping(layer, state.index, stockKey(layer, state.index)); showError(''); draftChanged(); });
+    $('reset-all').addEventListener('click', () => { if (window.confirm('Reset all four layers in this browser draft to authenticated factory defaults? No firmware will be written.')) { state.profile = blankProfile(); showError(''); draftChanged(); } });
+    $('export-profile').addEventListener('click', () => downloadBlob(new Blob([JSON.stringify(canonicalProfile(), null, 2) + '\n'], {type: 'application/json'}), 'OE915-remap-profile.json'));
+    $('import-profile').addEventListener('click', () => $('profile-file').click()); $('profile-file').addEventListener('change', () => importProfile($('profile-file').files[0]));
+    $('build').addEventListener('click', previewBuild); $('download-firmware').addEventListener('click', downloadFirmware); $('review-ack').addEventListener('change', updateControls);
+    $('device-select').addEventListener('change', () => { describeDevice(); updateControls(); }); $('connect-device').addEventListener('click', connectDevice); $('connection-state').addEventListener('click', connectDevice);
+    $('connect-boot').addEventListener('click', () => state.bootWaiter?.choose()); $('stop-boot').addEventListener('click', () => state.bootWaiter?.stop());
+    $('flash').addEventListener('click', () => openConfirmation('flash')); $('restore-stock').addEventListener('click', () => openConfirmation('restore'));
+    $('confirm-ack').addEventListener('change', updateControls); $('confirm-write').addEventListener('click', confirmWrite); $('confirm-cancel').addEventListener('click', () => { $('write-confirm').close(); state.confirmation = null; });
+    $('write-confirm').addEventListener('cancel', event => { if (state.requesting) event.preventDefault(); else state.confirmation = null; });
+    $('forget-stock').addEventListener('click', () => { if (!window.confirm('Forget the loaded stock firmware? You will need to load it again. Your draft is kept.')) return; try { localStorage.removeItem(STOCK_STORAGE); } catch { /* storage unavailable */ } location.reload(); });
+    window.addEventListener('beforeunload', event => { if (state.job?.state === 'running') { event.preventDefault(); event.returnValue = ''; } });
+    if (HID) { HID.addEventListener('connect', refreshDevices); HID.addEventListener('disconnect', refreshDevices); }
+  }
+
+  /* ---------------- stock firmware + startup ---------------- */
+  const toBase64 = bytes => { let text = ''; for (let i = 0; i < bytes.length; i += 0x8000) text += String.fromCharCode(...bytes.subarray(i, i + 0x8000)); return btoa(text); };
+  const fromBase64 = text => Uint8Array.from(atob(text), char => char.charCodeAt(0));
+  function start(firmware) {
+    state.firmware = firmware; state.model = firmware.model(); state.profile = blankProfile();
+    try { const stored = localStorage.getItem(STORAGE); if (stored) state.profile = normalizeProfile(JSON.parse(stored)); }
+    catch (error) { showError(`Saved draft could not be loaded; factory defaults are shown. ${error.message} Import a valid profile or reset the draft to replace it.`); $('draft-storage-state').textContent = 'Saved draft unavailable'; }
+    $('base-digest').textContent = `Authenticated stock SHA-256: ${state.model.base_sha256}`;
+    $('settings-note').textContent = state.model.settings_note;
+    for (const limitation of state.model.limitations) $('model-limitations').append(element('li', limitation));
+    $('hid-missing').hidden = Boolean(HID);
+    if (!HID) { $('connection-state').textContent = 'WebHID unavailable'; $('connection-state').className = 'pill error'; }
+    populateCombinations(); bindEvents(); renderTabs(); renderBoard(); renderSelected(); renderDraft(); describeDevice();
+    $('loading').hidden = true; $('stock-loader').hidden = true; $('app').hidden = false; document.querySelector('.app').classList.remove('locked'); updateControls(); refreshDevices();
+  }
+  async function checkAttachedFirmware() {
+    try {
+      const res = await fetch('CompxUpgradeBinFile.bin');
+      if (!res.ok) return;
+      const buf = new Uint8Array(await res.arrayBuffer());
+      if (buf.length === 148336 && OE915.sha256Hex(buf) === OE915.STOCK_SHA) {
+        $('attached-firmware-banner').hidden = false;
+        $('load-attached-btn').addEventListener('click', async () => {
+          $('load-attached-btn').disabled = true;
+          $('load-attached-btn').textContent = 'Loading…';
+          try {
+            const firmware = await OE915.loadStock(buf);
+            try { localStorage.setItem(STOCK_STORAGE, toBase64(firmware.stock)); } catch {}
+            start(firmware);
+          } catch (err) {
+            showError(err.message, 'stock-error');
+            $('load-attached-btn').disabled = false;
+          }
+        });
+      }
+    } catch { /* file fetch unavailable */ }
+  }
+  async function loadStockFile(file) {
+    showError('', 'stock-error');
+    if (!file) return;
+    try {
+      if (file.size > 64 * 1024 * 1024) throw new Error('File is too large to be the OE915 firmware or updater.');
+      $('stock-drop').classList.add('busy');
+      const firmware = await OE915.loadStock(new Uint8Array(await file.arrayBuffer()));
+      try { localStorage.setItem(STOCK_STORAGE, toBase64(firmware.stock)); } catch { /* still usable for this session */ }
+      start(firmware);
+    } catch (error) { showError(error.message, 'stock-error'); }
+    finally { $('stock-drop').classList.remove('busy'); $('stock-file').value = ''; }
+  }
+  async function initialize() {
+    bindEvents();
+    initTester();
+    $('stock-file').addEventListener('change', () => loadStockFile($('stock-file').files[0]));
+    const drop = $('stock-drop');
+    drop.addEventListener('dragover', event => { event.preventDefault(); drop.classList.add('over'); });
+    drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+    drop.addEventListener('drop', event => { event.preventDefault(); drop.classList.remove('over'); loadStockFile(event.dataTransfer.files[0]); });
+    let saved = null;
+    try { saved = localStorage.getItem(STOCK_STORAGE); } catch { /* storage unavailable */ }
+    if (saved) {
+      try { start(await OE915.loadStock(fromBase64(saved))); return; }
+      catch (error) { try { localStorage.removeItem(STOCK_STORAGE); } catch { /* ignore */ } showError(`Saved stock firmware was rejected and forgotten: ${error.message}`, 'stock-error'); }
+    }
+    checkAttachedFirmware();
+    $('loading').hidden = true;
+    if (state.view === 'tester' || state.view === 'info') {
+      setView(state.view);
+    } else {
+      $('stock-loader').hidden = false;
+      $('app').hidden = true;
+    }
+  }
+  initialize();
+})();
+</script>
+</body>
+</html>

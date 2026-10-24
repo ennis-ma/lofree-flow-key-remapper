@@ -1,0 +1,9 @@
+{
+  "format": "oe915-remap-v1",
+  "base_sha256": "7c061d9ce66c0b45e7d9f02e5d467af78cd537a88529b90fccb5dbf6dbccc7de",
+  "changes": [
+    {"layer": "win", "index": 66, "type": 1, "value": 1},
+    {"layer": "mac", "index": 66, "type": 1, "value": 1}
+  ],
+  "settings": {}
+}

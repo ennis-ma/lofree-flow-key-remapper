@@ -1,0 +1,17 @@
+# Documentation & research artifacts
+docs/
+evidence/
+originals/
+
+# Python cache & bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Operating system & editor files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
