@@ -2182,27 +2182,19 @@ dialog p { font-size: 13px; color: #c9ced6; }
     populateCombinations(); bindEvents(); renderTabs(); renderBoard(); renderSelected(); renderDraft(); describeDevice();
     $('loading').hidden = true; $('stock-loader').hidden = true; $('app').hidden = false; document.querySelector('.app').classList.remove('locked'); updateControls(); refreshDevices();
   }
-  async function checkAttachedFirmware() {
-    try {
-      const res = await fetch('CompxUpgradeBinFile.bin');
-      if (!res.ok) return;
-      const buf = new Uint8Array(await res.arrayBuffer());
-      if (buf.length === 148336 && OE915.sha256Hex(buf) === OE915.STOCK_SHA) {
-        $('attached-firmware-banner').hidden = false;
-        $('load-attached-btn').addEventListener('click', async () => {
-          $('load-attached-btn').disabled = true;
-          $('load-attached-btn').textContent = 'Loading…';
-          try {
-            const firmware = await OE915.loadStock(buf);
-            try { localStorage.setItem(STOCK_STORAGE, toBase64(firmware.stock)); } catch {}
-            start(firmware);
-          } catch (err) {
-            showError(err.message, 'stock-error');
-            $('load-attached-btn').disabled = false;
-          }
-        });
-      }
-    } catch { /* file fetch unavailable */ }
+  async function fetchAttachedFirmware() {
+    const urls = ['CompxUpgradeBinFile.bin', '../CompxUpgradeBinFile.bin', 'web/CompxUpgradeBinFile.bin'];
+    for (const url of urls) {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) continue;
+        const buf = new Uint8Array(await res.arrayBuffer());
+        if (buf.length === 148336 && OE915.sha256Hex(buf) === OE915.STOCK_SHA) {
+          return buf;
+        }
+      } catch { /* try next url */ }
+    }
+    return null;
   }
   async function loadStockFile(file) {
     showError('', 'stock-error');
@@ -2224,13 +2216,35 @@ dialog p { font-size: 13px; color: #c9ced6; }
     drop.addEventListener('dragover', event => { event.preventDefault(); drop.classList.add('over'); });
     drop.addEventListener('dragleave', () => drop.classList.remove('over'));
     drop.addEventListener('drop', event => { event.preventDefault(); drop.classList.remove('over'); loadStockFile(event.dataTransfer.files[0]); });
+
+    // 1. Check if previously authenticated firmware is saved in localStorage
     let saved = null;
     try { saved = localStorage.getItem(STOCK_STORAGE); } catch { /* storage unavailable */ }
     if (saved) {
-      try { start(await OE915.loadStock(fromBase64(saved))); return; }
-      catch (error) { try { localStorage.removeItem(STOCK_STORAGE); } catch { /* ignore */ } showError(`Saved stock firmware was rejected and forgotten: ${error.message}`, 'stock-error'); }
+      try {
+        start(await OE915.loadStock(fromBase64(saved)));
+        return;
+      } catch (error) {
+        try { localStorage.removeItem(STOCK_STORAGE); } catch { /* ignore */ }
+      }
     }
-    checkAttachedFirmware();
+
+    // 2. Default: automatically load the attached OE915 stock firmware from GitHub
+    $('loading').textContent = 'Loading attached OE915 v2.52 stock firmware…';
+    $('loading').hidden = false;
+    const attachedBuf = await fetchAttachedFirmware();
+    if (attachedBuf) {
+      try {
+        const firmware = await OE915.loadStock(attachedBuf);
+        try { localStorage.setItem(STOCK_STORAGE, toBase64(firmware.stock)); } catch {}
+        start(firmware);
+        return;
+      } catch (error) {
+        showError(`Attached stock firmware could not be verified: ${error.message}`, 'stock-error');
+      }
+    }
+
+    // 3. Fallback: manual upload screen if fetch failed (e.g. strict local file:// sandbox)
     $('loading').hidden = true;
     if (state.view === 'tester' || state.view === 'info') {
       setView(state.view);
