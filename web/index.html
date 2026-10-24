@@ -608,7 +608,7 @@ dialog p { font-size: 13px; color: #c9ced6; }
 <section id="stock-loader" class="onboard" aria-labelledby="stock-title" hidden>
   <div class="panel panel-pad onboard-card">
     <h2 id="stock-title">Load the stock firmware</h2>
-    <p>Every image is built from Lofree’s original OE915 v2.52 firmware. Choose <code>CompxUpgradeBinFile.bin</code> or Lofree’s updater <code>OE915更新V2.52.exe</code> (the firmware is extracted from it). The file must match SHA-256 <span class="digest">7c061d9c…dbccc7de</span>. It stays in this browser: nothing is uploaded and this page bundles no Lofree firmware.</p>
+    <p>Every image is built from Lofree’s original OE915 v2.52 firmware. Choose <code>CompxUpgradeBinFile.bin</code> or Lofree’s updater <code>OE915更新V2.52.exe</code> (the firmware is extracted from it). The file must match SHA-256 <span class="digest">7c061d9c…dbccc7de</span>. The bundled firmware normally loads automatically. If that download fails, choose a local copy below. Nothing is uploaded.</p>
     <div id="attached-firmware-banner" class="attached-banner" hidden>
       <div class="attached-info">
         <span class="pill ready plain" style="font-size:11px;padding:3px 9px;">Attached Firmware</span>
@@ -2189,10 +2189,9 @@ dialog p { font-size: 13px; color: #c9ced6; }
         const res = await fetch(url);
         if (!res.ok) continue;
         const buf = new Uint8Array(await res.arrayBuffer());
-        if (buf.length === 148336 && OE915.sha256Hex(buf) === OE915.STOCK_SHA) {
-          return buf;
-        }
-      } catch { /* try next url */ }
+        // loadStock awaits SHA-256 authentication before returning a usable model.
+        return await OE915.loadStock(buf);
+      } catch { /* try next url if unavailable or not authenticated stock */ }
     }
     return null;
   }
@@ -2232,19 +2231,19 @@ dialog p { font-size: 13px; color: #c9ced6; }
     // 2. Default: automatically load the attached OE915 stock firmware from GitHub
     $('loading').textContent = 'Loading attached OE915 v2.52 stock firmware…';
     $('loading').hidden = false;
-    const attachedBuf = await fetchAttachedFirmware();
-    if (attachedBuf) {
-      try {
-        const firmware = await OE915.loadStock(attachedBuf);
+    try {
+      const firmware = await fetchAttachedFirmware();
+      if (firmware) {
         try { localStorage.setItem(STOCK_STORAGE, toBase64(firmware.stock)); } catch {}
         start(firmware);
         return;
-      } catch (error) {
-        showError(`Attached stock firmware could not be verified: ${error.message}`, 'stock-error');
       }
+    } catch (error) {
+      console.warn('Attached firmware load failed:', error);
     }
 
     // 3. Fallback: manual upload screen if fetch failed (e.g. strict local file:// sandbox)
+    showError('The bundled stock firmware could not be downloaded or authenticated. Reload to retry, or choose a local firmware file below.', 'stock-error');
     $('loading').hidden = true;
     if (state.view === 'tester' || state.view === 'info') {
       setView(state.view);

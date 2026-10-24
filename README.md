@@ -11,11 +11,11 @@ A browser-based visual key remapper, interactive switch tester, and WebHID firmw
 The Lofree Flow84 is a popular low-profile mechanical keyboard, but it lacks official QMK/VIA support or custom key remapping software. This project provides a complete open-source solution:
 
 - **100% Browser-Based**: Everything runs locally in your browser using modern WebHID. No drivers, software installations, servers, or Python required.
-- **Firmware Attached**: The authenticated stock firmware (`CompxUpgradeBinFile.bin`) is pre-bundled in the web app and loads automatically in one click.
+- **Firmware Attached**: The authenticated stock firmware (`CompxUpgradeBinFile.bin`) is pre-bundled in the web app and loads automatically when you open the page—no file picker or extra click.
 - **Onboard Persistence**: Remappings are compiled into the firmware and remain active across reboots and different computers.
 - **Win / Mac Switch Survival**: Includes a verified call patch so toggling the physical Win/Mac switch keeps your custom keymap active.
 - **Interactive Switch Tester**: Built-in 84-key layout tester with latency measurement, modifier status lights, and switch bounce/chatter detection.
-- **Stock Restoration**: Easily restore the byte-identical original factory firmware at any time.
+- **Stock Restoration**: Restore the byte-identical original firmware while the keyboard remains accessible over USB. Recovery is not guaranteed.
 
 ---
 
@@ -33,7 +33,7 @@ Configure custom keys across all 4 hardware layers (**Windows**, **Windows + Fn*
 ---
 
 ### 2. Interactive Key Tester
-Test every physical switch on your Flow84 to ensure switch health, test actuation latency, and verify that remapped keys are sending the expected scan codes.
+Check key events from your Flow84 and verify remapped keys. The screenshot uses automated example keystrokes; it is not a physical switch test. Timing shows intervals between browser events, not hardware input latency.
 
 ![Flow84 Key Tester](images/screenshot-tester.png)
 
@@ -52,7 +52,7 @@ Inspect exact firmware byte modifications, review cryptographic SHA-256 digests,
 
 - **Zero guess-work**: Review a human-readable list of every modified key before flashing.
 - **Automated bootloader handoff**: Chromium automatically prompts for the bootloader (`3554:f800`) when the keyboard restarts into update mode.
-- **1-Click stock restoration**: Restore the byte-identical vendor firmware at any time, even if the keyboard is stuck in bootloader mode.
+- **Stock restoration**: Restore the byte-identical vendor firmware, including from a recognized bootloader. Recovery is not guaranteed if the keyboard stops appearing over USB.
 
 ---
 
